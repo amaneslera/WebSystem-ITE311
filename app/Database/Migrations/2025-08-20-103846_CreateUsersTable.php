@@ -42,6 +42,42 @@ class CreateUsersTable extends Migration
                 'constraint' => 100,
                 'null'       => true,
             ],
+            'student_id' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
+                'null'       => true,
+            ],
+            'program' => [
+                'type'       => 'ENUM',
+                'constraint' => ['BSIT', 'BSCS', 'BSBA'],
+                'null'       => true,
+            ],
+            'department' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
+                'null'       => true, 
+            ],
+            'year_level' => [
+                'type'       => 'ENUM',
+                'constraint' => ['1st Year', '2nd Year', '3rd Year', '4th Year'],
+                'null'       => true,
+            ],
+            
+            'employee_id' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
+                'null'       => true, 
+            ],
+            'phone' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
+                'null'       => true,
+            ],
+            'status' => [
+                'type'       => 'ENUM',
+                'constraint' => ['active', 'inactive'],
+                'default'    => 'active',
+            ],
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
@@ -54,7 +90,9 @@ class CreateUsersTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey('username', false, true); 
-        $this->forge->addKey('email', false, true);    
+        $this->forge->addKey('email', false, true);
+        $this->forge->addKey('student_id', false, true); 
+        $this->forge->addKey('employee_id', false, true); 
         $this->forge->createTable('users', true);
     }
 

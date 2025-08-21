@@ -32,7 +32,7 @@ class CreateEnrollmentsTable extends Migration
         ]);
         
         $this->forge->addKey('id', true);
-        $this->forge->addKey(['user_id', 'course_id'], false, true);
+        $this->forge->addKey(['user_id', 'course_id'], false, true); // Prevent duplicate enrollments
         $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('course_id', 'courses', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('enrollments', true);

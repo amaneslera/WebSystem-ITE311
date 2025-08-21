@@ -28,6 +28,11 @@ class CreateLessonsTable extends Migration
                 'constraint' => 11,
                 'unsigned'   => true,
             ],
+            'duration_minutes' => [
+                'type'       => 'INT',
+                'constraint' => 5,
+                'null'       => true, 
+            ],
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,

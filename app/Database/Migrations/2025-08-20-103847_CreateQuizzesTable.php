@@ -30,7 +30,26 @@ class CreateQuizzesTable extends Migration
             ],
             'questions' => [
                 'type' => 'TEXT',
-                'null' => true,
+                'null' => true, 
+            ],
+            'total_points' => [
+                'type'       => 'INT',
+                'constraint' => 5,
+                'default'    => 100, 
+            ],
+            'time_limit_minutes' => [
+                'type'       => 'INT',
+                'constraint' => 5,
+                'null'       => true, 
+            ],
+            'attempts_allowed' => [
+                'type'       => 'INT',
+                'constraint' => 2,
+                'default'    => 1, 
+            ],
+            'is_active' => [
+                'type'    => 'BOOLEAN',
+                'default' => true, 
             ],
             'created_at' => [
                 'type' => 'DATETIME',
