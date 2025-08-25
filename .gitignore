@@ -1,0 +1,21 @@
+# CodeIgniter 4 specific
+/writable/logs/*
+/writable/session/*
+/writable/cache/*
+/writable/uploads/*
+!writable/index.html
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Composer
+/vendor/
+
+# Build files
+/public/build/
+
+# Temporary files
+*.tmp
+*.temp
