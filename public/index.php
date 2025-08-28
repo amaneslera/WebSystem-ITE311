@@ -8,7 +8,6 @@ use Config\Paths;
  * CHECK PHP VERSION
  *---------------------------------------------------------------
  */
-
 $minPhpVersion = '8.1'; // If you update this, don't forget to update `spark`.
 if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
     $message = sprintf(
@@ -19,7 +18,6 @@ if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
 
     header('HTTP/1.1 503 Service Unavailable.', true, 503);
     echo $message;
-
     exit(1);
 }
 
@@ -28,7 +26,6 @@ if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
  * SET THE CURRENT DIRECTORY
  *---------------------------------------------------------------
  */
-
 // Path to the front controller (this file)
 define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
 
@@ -47,9 +44,9 @@ if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
  */
 
 // LOAD OUR PATHS CONFIG FILE
-// This is the line that might need to be changed, depending on your folder structure.
+// Load our paths config file
 require FCPATH . '../app/Config/Paths.php';
-// ^^^ Change this line if you move your application folder
+
 
 $paths = new Paths();
 

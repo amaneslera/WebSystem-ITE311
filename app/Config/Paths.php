@@ -28,6 +28,7 @@ class Paths
      */
     public string $systemDirectory = __DIR__ . '/../../system';
 
+
     /**
      * ---------------------------------------------------------------
      * APPLICATION FOLDER NAME
@@ -55,6 +56,7 @@ class Paths
      */
     public string $writableDirectory = __DIR__ . '/../../writable';
 
+
     /**
      * ---------------------------------------------------------------
      * TESTS DIRECTORY NAME
@@ -62,7 +64,7 @@ class Paths
      *
      * This variable must contain the name of your "tests" directory.
      */
-    public string $testsDirectory = __DIR__ . '/../../tests';
+    public string $testsDirectory = __DIR__ . '/../tests';
 
     /**
      * ---------------------------------------------------------------
