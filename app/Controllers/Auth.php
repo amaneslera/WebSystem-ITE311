@@ -34,7 +34,7 @@ class Auth extends BaseController
                     'name'       => $this->request->getPost('name'),
                     'email'      => $this->request->getPost('email'),
                     'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-                    'role'       => 'user', 
+                    'role'       => 'student', // Changed from 'user' to 'student'
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ];
@@ -74,6 +74,7 @@ class Auth extends BaseController
                     ->getRowArray();
 
                 if ($user && password_verify($password, $user['password'])) {
+                    // Store user data in session
                     session()->set([
                         'user_id'    => $user['id'],
                         'name'       => $user['name'],
@@ -82,16 +83,44 @@ class Auth extends BaseController
                         'isLoggedIn' => true
                     ]);
 
-                    if ($user['role'] === 'admin') {
-                        return redirect()->to('/admin/dashboard');
-                    } else {
-                        return redirect()->to('/dashboard');
+                    // Set dashboard redirect URL based on role
+                    $redirectUrl = '/dashboard';
+                    switch ($user['role']) {
+                        case 'admin':
+                            $redirectUrl = '/admin/dashboard';
+                            break;
+                        case 'teacher':
+                            $redirectUrl = '/teacher/dashboard';
+                            break;
+                        case 'student':
+                            $redirectUrl = '/student/dashboard';
+                            break;
                     }
+
+                    // Return success status and redirect URL for AJAX handling
+                    $data = [
+                        'success' => true,
+                        'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
+                        'redirect' => $redirectUrl,
+                        'user' => [
+                            'name' => $user['name'],
+                            'role' => $user['role']
+                        ]
+                    ];
+                    
+                    return $this->response->setJSON($data);
                 } else {
-                    session()->setFlashdata('error', 'Invalid email or password.');
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Invalid email or password.'
+                    ]);
                 }
             } else {
-                $data['validation'] = $this->validator;
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Please check your input and try again.',
+                    'errors' => $this->validator->getErrors()
+                ]);
             }
         }
 
