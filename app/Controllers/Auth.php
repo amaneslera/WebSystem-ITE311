@@ -11,7 +11,7 @@ class Auth extends BaseController
 
     public function __construct()
     {
-        // Connect to database and users table
+        
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('users');
     }
@@ -34,7 +34,7 @@ class Auth extends BaseController
                     'name'       => $this->request->getPost('name'),
                     'email'      => $this->request->getPost('email'),
                     'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-                    'role'       => 'student', // Changed from 'user' to 'student'
+                    'role'       => 'student', 
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ];
@@ -58,68 +58,47 @@ class Auth extends BaseController
         helper(['form']);
         $data = [];
 
+        
         if ($this->request->is('post')) {
-            $rules = [
-                'email' => 'required|valid_email',
-                'password' => 'required|min_length[6]|max_length[255]'
-            ];
+           
+            $email = $this->request->getPost('email');
+            $password = $this->request->getPost('password');
+            
+            $user = $this->builder
+                ->where('email', $email)
+                ->get()
+                ->getRowArray();
 
-            if ($this->validate($rules)) {
-                $email = $this->request->getPost('email');
-                $password = $this->request->getPost('password');
+            if ($user && password_verify($password, $user['password'])) {
+           
+                session()->set([
+                    'user_id'    => $user['id'],
+                    'name'       => $user['name'],
+                    'email'      => $user['email'],
+                    'role'       => $user['role'],
+                    'isLoggedIn' => true
+                ]);
                 
-                $user = $this->builder
-                    ->where('email', $email)
-                    ->get()
-                    ->getRowArray();
+                
+                $redirectUrl = '/dashboard';
+               
 
-                if ($user && password_verify($password, $user['password'])) {
-                    // Store user data in session
-                    session()->set([
-                        'user_id'    => $user['id'],
-                        'name'       => $user['name'],
-                        'email'      => $user['email'],
-                        'role'       => $user['role'],
-                        'isLoggedIn' => true
-                    ]);
-
-                    // Set dashboard redirect URL based on role
-                    $redirectUrl = '/dashboard';
-                    switch ($user['role']) {
-                        case 'admin':
-                            $redirectUrl = '/admin/dashboard';
-                            break;
-                        case 'teacher':
-                            $redirectUrl = '/teacher/dashboard';
-                            break;
-                        case 'student':
-                            $redirectUrl = '/student/dashboard';
-                            break;
-                    }
-
-                    // Return success status and redirect URL for AJAX handling
-                    $data = [
-                        'success' => true,
-                        'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
-                        'redirect' => $redirectUrl,
-                        'user' => [
-                            'name' => $user['name'],
-                            'role' => $user['role']
-                        ]
-                    ];
-                    
-                    return $this->response->setJSON($data);
-                } else {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'Invalid email or password.'
-                    ]);
-                }
+                
+                $data = [
+                    'success' => true,
+                    'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
+                    'redirect' => $redirectUrl,
+                    'user' => [
+                        'name' => $user['name'],
+                        'role' => $user['role']
+                    ]
+                ];
+                
+                return $this->response->setJSON($data);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Please check your input and try again.',
-                    'errors' => $this->validator->getErrors()
+                    'message' => 'Invalid email or password.'
                 ]);
             }
         }
@@ -134,7 +113,29 @@ class Auth extends BaseController
         }
 
         $role = session()->get('role');
-        return view('auth/dashboard', ['role' => $role]);
+        $userId = session()->get('user_id');
+        $data = [
+            'role' => $role,
+        ];
+
+        // Admin-specific data
+        if ($role === 'admin') {
+            $data['total_teachers'] = $this->db->table('users')->where('role', 'teacher')->countAllResults();
+            $data['total_students'] = $this->db->table('users')->where('role', 'student')->countAllResults();
+            
+            if ($this->db->tableExists('courses')) {
+                $data['total_courses'] = $this->db->table('courses')->countAllResults();
+            } else {
+                $data['total_courses'] = 0;
+            }
+            
+            $data['users'] = $this->db->table('users')
+                ->orderBy('created_at', 'DESC')
+                ->limit(10)
+                ->get()->getResultArray();
+        }
+
+        return view('auth/dashboard', $data);
     }
 
     public function logout()
