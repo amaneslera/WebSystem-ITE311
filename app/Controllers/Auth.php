@@ -118,7 +118,7 @@ class Auth extends BaseController
             'role' => $role,
         ];
 
-        // Admin-specific data
+     
         if ($role === 'admin') {
             $data['total_teachers'] = $this->db->table('users')->where('role', 'teacher')->countAllResults();
             $data['total_students'] = $this->db->table('users')->where('role', 'student')->countAllResults();
@@ -133,6 +133,64 @@ class Auth extends BaseController
                 ->orderBy('created_at', 'DESC')
                 ->limit(10)
                 ->get()->getResultArray();
+        }
+       
+        else if ($role === 'teacher') {
+            if ($this->db->tableExists('courses')) {
+                $data['courses'] = $this->db->table('courses')
+                    ->where('teacher_id', $userId)
+                    ->get()->getResultArray();
+                $data['total_courses'] = count($data['courses']);
+                
+              
+                if ($this->db->tableExists('course_enrollments')) {
+                    foreach ($data['courses'] as &$course) {
+                        $course['students_count'] = $this->db->table('course_enrollments')
+                            ->where('course_id', $course['id'])
+                            ->countAllResults();
+                    }
+                }
+            } else {
+                $data['courses'] = [];
+                $data['total_courses'] = 0;
+            }
+            
+        
+            $data['total_students'] = 0;
+            if ($this->db->tableExists('course_enrollments') && !empty($data['courses'])) {
+                $courseIds = array_column($data['courses'], 'id');
+                $data['total_students'] = $this->db->table('course_enrollments')
+                    ->whereIn('course_id', $courseIds)
+                    ->countAllResults();
+            }
+            
+            // Get pending assignments
+            if ($this->db->tableExists('assignments') && $this->db->tableExists('submissions')) {
+                $data['pending_assignments'] = $this->db->table('assignments')
+                    ->select('assignments.id, assignments.title, assignments.due_date, courses.title as course_title, COUNT(submissions.id) as submission_count')
+                    ->join('courses', 'courses.id = assignments.course_id')
+                    ->join('submissions', 'submissions.assignment_id = assignments.id', 'left')
+                    ->where('courses.teacher_id', $userId)
+                    ->where('submissions.graded', 0)
+                    ->groupBy('assignments.id')
+                    ->having('submission_count >', 0)
+                    ->get()->getResultArray();
+            } else {
+                $data['pending_assignments'] = [];
+            }
+            
+           
+            $data['notifications'] = [];
+            
+            if (!empty($data['pending_assignments'])) {
+                foreach (array_slice($data['pending_assignments'], 0, 2) as $assignment) {
+                    $data['notifications'][] = [
+                        'message' => 'You have ' . $assignment['submission_count'] . ' submissions to grade for "' . $assignment['title'] . '"',
+                        'time_ago' => '2 hours ago',
+                        'type' => 'assignment'
+                    ];
+                }
+            }
         }
 
         return view('auth/dashboard', $data);
