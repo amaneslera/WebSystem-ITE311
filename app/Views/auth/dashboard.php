@@ -25,101 +25,14 @@
     </style>
 </head>
 <body>
-    <?php
-    
-    $role = session()->get('role');
-    $navbarClass = '';
-    $navbarIcon = '';
-    
-    switch($role) {
-        case 'admin':
-            $navbarClass = 'navbar-dark admin-bg';
-            $navbarIcon = 'shield-lock';
-            break;
-        case 'teacher':
-            $navbarClass = 'navbar-dark teacher-bg';
-            $navbarIcon = 'person-workspace';
-            break;
-        case 'student':
-        default:
-            $navbarClass = 'navbar-dark student-bg';
-            $navbarIcon = 'mortarboard';
-            break;
-    }
-    ?>
+    <?= $this->include('templates/header') ?>
 
-    <nav class="navbar navbar-expand-lg <?= $navbarClass ?>">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="<?=base_url('/dashboard')?>
-                <i class="bi bi-<?= $navbarIcon ?>"></i>
-                <?= ucfirst($role) ?> Dashboard
-            </a>
-            
-         
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
-                    data-bs-target="#navbarContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Only show Dashboard for now -->
-                    <li class="nav-item">
-                        <a class="nav-link active" href="<?=base_url('/dashboard')?>">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                </ul>
-               
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" role="button" 
-                       data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle"></i> <?= session()->get('name') ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <span class="dropdown-item-text">
-                                Role: 
-                                <span class="badge bg-<?= $role == 'admin' ? 'danger' : ($role == 'teacher' ? 'primary' : 'success') ?>">
-                                    <?= ucfirst($role) ?>
-                                </span>
-                            </span>
-                        </li>
-                        <li><span class="dropdown-item-text">Email: <?= session()->get('email') ?></span></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="<?= base_url('/profile') ?>"><i class="bi bi-person"></i> My Profile</a></li>
-                        <li><a class="dropdown-item" href="<?= base_url('/logout') ?>"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-  
     <div class="container-fluid mt-4">
-        <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <?= session()->getFlashdata('error') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
-
-       
         <h2 class="mb-4">Welcome, <?= session()->get('name') ?>!</h2>
         
-        <?php if ($role === 'admin'): ?>
-            
+        <?php if (session()->get('role') === 'admin'): ?>
+            <!-- Admin Dashboard Content -->
             <div class="row">
-                
                 <div class="col-md-4 mb-4">
                     <div class="card stat-card text-white bg-primary">
                         <div class="card-body">
@@ -166,7 +79,7 @@
                 </div>
             </div>
             
-        
+            <!-- Recent Users Table -->
             <div class="card mt-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Users</h5>
@@ -213,7 +126,7 @@
                     <?php endif; ?>
                 </div>
             </div>
-        <?php elseif ($role === 'teacher'): ?>
+        <?php elseif (session()->get('role') === 'teacher'): ?>
             <!-- Teacher Dashboard Content -->
             <div class="row">
                 <div class="col-lg-8">
@@ -398,9 +311,139 @@
                     </div>
                 </div>
             </div>
-        <?php else: ?>
-            <div class="alert alert-info">
-                <h4>Student Dashboard</h4>
+        <?php elseif (session()->get('role') === 'student'): ?>
+            <!-- Student Dashboard Content -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-4 stat-card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">Enrolled Courses</h5>
+                                    <h2 class="display-4"><?= $total_courses ?? 0 ?></h2>
+                                </div>
+                                <i class="bi bi-journal-text icon-large"></i>
+                            </div>
+                            <p class="card-text">Courses you're currently taking</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Grades Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Grades</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($recent_grades ?? [])): ?>
+                                <ul class="list-group">
+                                    <?php foreach ($recent_grades as $grade): ?>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0"><?= $grade['assignment_title'] ?></h6>
+                                            <small class="text-muted"><?= $grade['course_title'] ?></small>
+                                        </div>
+                                        <span class="badge bg-<?= $grade['score'] >= 90 ? 'success' : ($grade['score'] >= 70 ? 'primary' : ($grade['score'] >= 60 ? 'warning' : 'danger')) ?> rounded-pill">
+                                            <?= $grade['score'] ?>%
+                                        </span>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <div class="alert alert-light">
+                                    <i class="bi bi-info-circle"></i> No grades available yet.
+                                </div>
+                            <?php endif; ?>
+                            <a href="<?= base_url('/grades') ?>" class="btn btn-outline-success btn-sm mt-3">View All Grades</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">My Courses</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($enrolled_courses ?? [])): ?>
+                                <div class="row row-cols-1 row-cols-md-2 g-4">
+                                    <?php foreach ($enrolled_courses as $course): ?>
+                                    <div class="col">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title"><?= $course['title'] ?></h5>
+                                                <p class="card-text small text-muted">Instructor: <?= $course['teacher_name'] ?></p>
+                                                <p class="card-text"><?= substr($course['description'] ?? 'No description available', 0, 100) ?>...</p>
+                                            </div>
+                                            <div class="card-footer bg-transparent">
+                                                <a href="<?= base_url('/course/' . $course['id']) ?>" class="btn btn-sm btn-outline-success w-100">View Course</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> You are not enrolled in any courses yet.
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <!-- Upcoming Deadlines -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Upcoming Deadlines</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($upcoming_assignments ?? [])): ?>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Assignment</th>
+                                                <th>Course</th>
+                                                <th>Due Date</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($upcoming_assignments as $assignment): ?>
+                                            <tr>
+                                                <td><?= $assignment['title'] ?></td>
+                                                <td><?= $assignment['course_title'] ?></td>
+                                                <td><?= date('M d, Y', strtotime($assignment['due_date'])) ?></td>
+                                                <td>
+                                                    <?php if ($assignment['submitted']): ?>
+                                                        <span class="badge bg-success">Submitted</span>
+                                                    <?php else: ?>
+                                                        <?php if (strtotime($assignment['due_date']) < time()): ?>
+                                                            <span class="badge bg-danger">Overdue</span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-warning">Pending</span>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php if (!$assignment['submitted']): ?>
+                                                        <a href="<?= base_url('/assignment/submit/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-success">Submit</a>
+                                                    <?php else: ?>
+                                                        <a href="<?= base_url('/assignment/view/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-light">
+                                    <i class="bi bi-check-circle"></i> No upcoming deadlines.
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>
