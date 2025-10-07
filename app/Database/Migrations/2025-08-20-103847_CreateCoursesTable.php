@@ -18,6 +18,8 @@ class CreateCoursesTable extends Migration
             'course_code' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 20,
+                // Changed to not null
+                'null'       => false,  
             ],
             'title' => [
                 'type'       => 'VARCHAR',
@@ -27,7 +29,7 @@ class CreateCoursesTable extends Migration
                 'type' => 'TEXT',
                 'null' => true,
             ],
-            'teacher_id' => [  // Changed from instructor_id to teacher_id
+            'teacher_id' => [ 
                 'type'       => 'INT',
                 'constraint' => 11,
                 'unsigned'   => true,
@@ -42,16 +44,6 @@ class CreateCoursesTable extends Migration
                 'constraint' => ['1st Semester', '2nd Semester', 'Summer'],
                 'null'       => true,
             ],
-            'academic_year' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 20,
-                'null'       => true,
-            ],
-            'status' => [
-                'type'       => 'ENUM',
-                'constraint' => ['active', 'inactive', 'archived'],
-                'default'    => 'active',
-            ],
            
             'created_at' => [
                 'type' => 'DATETIME',
@@ -65,7 +57,7 @@ class CreateCoursesTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey('course_code', false, true); 
-        $this->forge->addForeignKey('teacher_id', 'users', 'id', 'CASCADE', 'CASCADE');  // Changed from instructor_id to teacher_id
+        $this->forge->addForeignKey('teacher_id', 'users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('courses', true);
     }
 

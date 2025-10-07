@@ -164,6 +164,38 @@ class Auth extends BaseController
                 $data['enrolled_courses'] = [];
                 $data['recent_grades'] = [];
                 $data['upcoming_assignments'] = [];
+                
+                // Get available courses (courses the student is not enrolled in)
+                if ($this->db->tableExists('courses')) {
+                    // Get IDs of courses the student is already enrolled in
+                    $enrolledCourseIds = [];
+                    if ($this->db->tableExists('enrollments')) {
+                        $enrolledCourseIds = $this->db->table('enrollments')
+                            ->select('course_id')
+                            ->where('user_id', $userId)
+                            ->get()
+                            ->getResultArray();
+                        $enrolledCourseIds = array_column($enrolledCourseIds, 'course_id');
+                    }
+                    
+                    // Get courses the student is not enrolled in
+                    $builder = $this->db->table('courses')
+                        ->select('courses.*, users.name as teacher_name')
+                        ->join('users', 'users.id = courses.teacher_id');
+                    
+                    if (!empty($enrolledCourseIds)) {
+                        $builder->whereNotIn('courses.id', $enrolledCourseIds);
+                    }
+                    
+                    $data['available_courses'] = $builder->get()->getResultArray();
+                } else {
+                    $data['available_courses'] = [];
+                }
+
+                // Get the total courses count
+                $totalCourses = $this->db->table('enrollments')->where('user_id', $userId)->countAllResults();
+                $data['total_courses'] = $totalCourses;
+                session()->set('total_courses', $totalCourses); // Store in session for AJAX updates
                 break;
         }
 

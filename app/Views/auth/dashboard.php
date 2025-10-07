@@ -445,9 +445,153 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Available Courses -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Available Courses</h5>
+                    <span class="badge bg-primary rounded-pill"><?= count($available_courses ?? []) ?> courses</span>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($available_courses ?? [])): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Instructor</th>
+                                        <th>Description</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($available_courses as $course): ?>
+                                    <tr>
+                                        <td><?= $course['title'] ?></td>
+                                        <td><?= $course['teacher_name'] ?></td>
+                                        <td><?= substr($course['description'] ?? 'No description available', 0, 80) ?>...</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success enroll-btn" 
+                                                    data-course-id="<?= $course['id'] ?>" 
+                                                    data-course-title="<?= $course['title'] ?>">
+                                                <i class="bi bi-plus-circle"></i> Enroll
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-light">
+                            <i class="bi bi-info-circle"></i> No courses available for enrollment at this time.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+$(document).ready(function() {
+    // Remove all existing alerts when page loads
+    $('.alert').remove();
+    
+    // Listen for clicks on Enroll buttons
+    $('.enroll-btn').click(function(e) {
+        // Prevent default behavior
+        e.preventDefault();
+        
+        // Get course data from data attributes
+        const courseId = $(this).data('course-id');
+        const courseTitle = $(this).data('course-title');
+        const $button = $(this);
+        
+        // Disable button and show loading state
+        $button.prop('disabled', true)
+               .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enrolling...');
+        
+        // Send AJAX request using jQuery
+        $.post('<?= base_url('course/enroll') ?>', { course_id: courseId })
+            .done(function(data) {
+                if (data.success) {
+                    // Remove ALL existing alerts before adding a new one
+                    $('.alert').remove();
+                    
+                    // Show success message with Bootstrap alert
+                    const $alert = $('<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                        '<i class="bi bi-check-circle-fill me-2"></i>' +
+                        'Successfully enrolled in <strong>' + courseTitle + '</strong>!' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                        '</div>');
+                    
+                    // Add this before creating the new alert
+                    $('.container-fluid .alert-success').remove();
+                    
+                    $('.container-fluid').prepend($alert);
+                    
+                    // Remove the course from available courses list
+                    $button.closest('tr').fadeOut(500, function() {
+                        $(this).remove();
+                        
+                        // Update available courses count
+                        const countBadge = $('.card-header .badge');
+                        const newCount = parseInt(countBadge.text()) - 1;
+                        countBadge.text(newCount + ' courses');
+                    });
+                    
+                    // Update enrolled courses count
+                    const $enrolledCount = $('.display-4').first();
+                    if ($enrolledCount.length) {
+                        $enrolledCount.text(parseInt($enrolledCount.text() || 0) + 1);
+                    }
+                    
+                    // Add the new course to the enrolled courses list without page reload
+                    if (data.course) {
+                        const $newCourse = $(
+                            '<div class="col">' +
+                                '<div class="card h-100">' +
+                                    '<div class="card-body">' +
+                                        '<h5 class="card-title">' + courseTitle + '</h5>' +
+                                        '<p class="card-text small text-muted">Instructor: ' + data.course.teacher_name + '</p>' +
+                                        '<p class="card-text">' + data.course.description.substring(0, 100) + '...</p>' +
+                                    '</div>' +
+                                    '<div class="card-footer bg-transparent">' +
+                                        '<a href="<?= base_url('/course/') ?>' + courseId + '" class="btn btn-sm btn-outline-success w-100">View Course</a>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>'
+                        );
+                        
+                        // Check if "no courses" message exists and remove it if found
+                        const $noCoursesMsg = $('.card-body .alert-info:contains("not enrolled in any courses")');
+                        if ($noCoursesMsg.length) {
+                            $noCoursesMsg.remove();
+                            $('.card-body .row').show();
+                        }
+                        
+                        // Add the new course to the list with animation
+                        $('.card-body .row.row-cols-1').append($newCourse);
+                        $newCourse.hide().fadeIn(1000);
+                    }
+                } else {
+                    // Show error message
+                    alert('Error: ' + data.message);
+                    // Reset button
+                    $button.prop('disabled', false)
+                           .html('<i class="bi bi-plus-circle"></i> Enroll');
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                $button.prop('disabled', false)
+                       .html('<i class="bi bi-plus-circle"></i> Enroll');
+            });
+    });
+});
+</script>
 </body>
 </html>
