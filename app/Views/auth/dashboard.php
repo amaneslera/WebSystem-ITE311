@@ -489,6 +489,27 @@
                     <?php endif; ?>
                 </div>
             </div>
+            
+            <!-- Downloadable Materials Section for Students -->
+            <div class="card mt-4">
+                <div class="card-header">Course Materials</div>
+                <div class="card-body">
+                    <?php if (!empty($materials)): ?>
+                        <ul class="list-group">
+                            <?php foreach ($materials as $material): ?>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <?= esc($material['file_name']) ?>
+                                    <a href="<?= base_url('materials/download/' . $material['id']) ?>" class="btn btn-sm btn-success">
+                                        Download
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <div class="alert alert-info">No materials available for your courses.</div>
+                    <?php endif; ?>
+                </div>
+            </div>
         <?php endif; ?>
     </div>
 

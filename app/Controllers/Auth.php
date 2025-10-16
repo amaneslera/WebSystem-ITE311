@@ -196,6 +196,28 @@ class Auth extends BaseController
                 $totalCourses = $this->db->table('enrollments')->where('user_id', $userId)->countAllResults();
                 $data['total_courses'] = $totalCourses;
                 session()->set('total_courses', $totalCourses); // Store in session for AJAX updates
+
+                // Get enrolled courses
+                if ($this->db->tableExists('enrollments')) {
+                    $data['enrolled_courses'] = $this->db->table('enrollments')
+                        ->select('enrollments.*, courses.title, courses.description, users.name as teacher_name')
+                        ->join('courses', 'courses.id = enrollments.course_id')
+                        ->join('users', 'users.id = courses.teacher_id')
+                        ->where('enrollments.user_id', $userId)
+                        ->get()
+                        ->getResultArray();
+                } else {
+                    $data['enrolled_courses'] = [];
+                }
+
+                // Get enrolled course IDs
+                $enrolledCourseIds = array_column($data['enrolled_courses'], 'course_id');
+                $materialModel = new \App\Models\MaterialModel();
+                $materials = [];
+                if (!empty($enrolledCourseIds)) {
+                    $materials = $materialModel->whereIn('course_id', $enrolledCourseIds)->findAll();
+                }
+                $data['materials'] = $materials;
                 break;
         }
 

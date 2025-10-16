@@ -18,7 +18,6 @@ class CreateCoursesTable extends Migration
             'course_code' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 20,
-                // Changed to not null
                 'null'       => false,  
             ],
             'title' => [
