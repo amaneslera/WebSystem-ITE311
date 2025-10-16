@@ -58,9 +58,7 @@ class Auth extends BaseController
         helper(['form']);
         $data = [];
 
-        
         if ($this->request->is('post')) {
-           
             $email = $this->request->getPost('email');
             $password = $this->request->getPost('password');
             
@@ -70,7 +68,6 @@ class Auth extends BaseController
                 ->getRowArray();
 
             if ($user && password_verify($password, $user['password'])) {
-           
                 session()->set([
                     'user_id'    => $user['id'],
                     'name'       => $user['name'],
@@ -79,11 +76,17 @@ class Auth extends BaseController
                     'isLoggedIn' => true
                 ]);
                 
-                
-                $redirectUrl = '/dashboard';
-               
+                // Set redirect URL based on role
+                if ($user['role'] === 'student') {
+                    $redirectUrl = '/announcements';
+                } elseif ($user['role'] === 'teacher') {
+                    $redirectUrl = '/teacher/dashboard';
+                } elseif ($user['role'] === 'admin') {
+                    $redirectUrl = '/admin/dashboard';
+                } else {
+                    $redirectUrl = '/dashboard';
+                }
 
-                
                 $data = [
                     'success' => true,
                     'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
