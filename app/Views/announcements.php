@@ -1,3 +1,4 @@
+<?= view('templates/header') ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,6 +8,11 @@
 <body>
 <div class="container mt-5">
     <h2>Announcements</h2>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger">
+            <?= session()->getFlashdata('error') ?>
+        </div>
+    <?php endif; ?>
     <?php if (!empty($announcements)): ?>
         <ul class="list-group">
             <?php foreach ($announcements as $announcement): ?>
