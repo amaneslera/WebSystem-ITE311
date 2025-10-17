@@ -15,10 +15,17 @@ class MaterialModel extends Model
         'file_path',
         'created_at'
     ];
+    protected $useTimestamps = false;
+    protected $returnType = 'array';
 
     public function insertMaterial($data)
     {
-        return $this->insert($data);
+        try {
+            return $this->insert($data, false);
+        } catch (\Exception $e) {
+            log_message('error', 'Material insert error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function getMaterialsByCourse($course_id)

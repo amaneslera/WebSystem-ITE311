@@ -20,7 +20,7 @@ class Materials extends Controller
         helper(['form', 'url']);
         $model = new MaterialModel();
 
-        if ($this->request->getMethod() === 'post') {
+        if (strtolower($this->request->getMethod()) === 'post') {
             // Load validation library
             $validation = \Config\Services::validation();
 
@@ -38,10 +38,13 @@ class Materials extends Controller
             ]);
 
             if (!$validation->withRequest($this->request)->run()) {
-                return redirect()->back()->with('error', implode(' ', $validation->getErrors()));
+                $errors = $validation->getErrors();
+                session()->setFlashdata('error', implode(' ', $errors));
+                return redirect()->to('/materials/upload/' . $course_id);
             }
 
             $file = $this->request->getFile('material_file');
+            
             if ($file && $file->isValid() && !$file->hasMoved()) {
                 // Configure upload preferences
                 $uploadPath = WRITEPATH . 'uploads/materials';
@@ -49,19 +52,44 @@ class Materials extends Controller
                     mkdir($uploadPath, 0777, true);
                 }
                 $newName = $file->getRandomName();
-                $file->move($uploadPath, $newName);
-
-                $data = [
-                    'course_id'  => $course_id,
-                    'file_name'  => $file->getClientName(),
-                    'file_path'  => $uploadPath . '/' . $newName,
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
-                $model->insertMaterial($data);
-
-                return redirect()->to('/courses/manage/' . $course_id)->with('success', 'Material uploaded successfully.');
+                
+                // Move the file
+                if ($file->move($uploadPath, $newName)) {
+                    // Use relative path for database storage (consistent with existing records)
+                    $relativePath = 'writable/uploads/materials/' . $newName;
+                    
+                    $data = [
+                        'course_id'  => $course_id,
+                        'file_name'  => $file->getClientName(),
+                        'file_path'  => $relativePath,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    // Try to insert into database
+                    $result = $model->insertMaterial($data);
+                    
+                    if ($result) {
+                        session()->setFlashdata('success', 'Material uploaded successfully!');
+                        return redirect()->to('/materials/upload/' . $course_id);
+                    } else {
+                        // If database insert fails, delete the uploaded file
+                        unlink($uploadPath . '/' . $newName);
+                        $errors = $model->errors();
+                        $errorMsg = !empty($errors) ? implode(', ', $errors) : 'Unknown database error';
+                        session()->setFlashdata('error', 'Failed to save material to database: ' . $errorMsg);
+                        return redirect()->to('/materials/upload/' . $course_id);
+                    }
+                } else {
+                    session()->setFlashdata('error', 'Failed to move uploaded file: ' . $file->getErrorString());
+                    return redirect()->to('/materials/upload/' . $course_id);
+                }
             } else {
-                return redirect()->back()->with('error', 'Invalid file upload.');
+                $errorMsg = 'Invalid file upload.';
+                if ($file) {
+                    $errorMsg .= ' Error: ' . $file->getErrorString();
+                }
+                session()->setFlashdata('error', $errorMsg);
+                return redirect()->to('/materials/upload/' . $course_id);
             }
         }
 
@@ -76,13 +104,16 @@ class Materials extends Controller
 
         if ($material) {
             // Delete the file from the server
-            if (is_file($material['file_path'])) {
-                unlink($material['file_path']);
+            $filePath = $material['file_path'];
+            if (is_file($filePath)) {
+                unlink($filePath);
             }
             // Delete the record from the database
-            $model->delete($material_id);
-
-            return redirect()->back()->with('success', 'Material deleted successfully.');
+            if ($model->delete($material_id)) {
+                return redirect()->back()->with('success', 'Material deleted successfully.');
+            } else {
+                return redirect()->back()->with('error', 'Failed to delete material from database.');
+            }
         } else {
             return redirect()->back()->with('error', 'Material not found.');
         }
@@ -114,10 +145,18 @@ class Materials extends Controller
         }
 
         // Download the file securely
-        if (is_file($material['file_path'])) {
-            return $this->response->download($material['file_path'], null);
+        $filePath = $material['file_path'];
+        
+        // Handle both absolute and relative paths
+        if (!is_file($filePath)) {
+            // Try as relative path from project root
+            $filePath = ROOTPATH . $filePath;
+        }
+        
+        if (is_file($filePath)) {
+            return $this->response->download($filePath, null);
         } else {
-            return redirect()->back()->with('error', 'File not found.');
+            return redirect()->back()->with('error', 'File not found. Path: ' . $material['file_path']);
         }
     }
 }

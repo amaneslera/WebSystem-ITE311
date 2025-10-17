@@ -76,4 +76,20 @@ class Course extends ResourceController
             ])->setStatusCode(500);
         }
     }
+
+    public function view($course_id)
+    {
+        
+        $materialModel = new \App\Models\MaterialModel();
+
+        
+        $materials = $materialModel->getMaterialsByCourse($course_id);
+
+        // Optionally, check if the student is enrolled in this course
+
+        return view('course_view', [
+            
+            'materials' => $materials
+        ]);
+    }
 }

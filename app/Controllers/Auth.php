@@ -67,7 +67,7 @@ class Auth extends BaseController
                 ->get()
                 ->getRowArray();
 
-            if ($user && password_verify($password, $user['password'])) {
+             if ($user && password_verify($password, $user['password'])) {
                 session()->set([
                     'user_id'    => $user['id'],
                     'name'       => $user['name'],
@@ -75,27 +75,20 @@ class Auth extends BaseController
                     'role'       => $user['role'],
                     'isLoggedIn' => true
                 ]);
-                
-                // Set redirect URL based on role
-                if ($user['role'] === 'student') {
-                    $redirectUrl = '/announcements';
-                } elseif ($user['role'] === 'teacher') {
-                    $redirectUrl = '/teacher/dashboard';
-                } elseif ($user['role'] === 'admin') {
-                    $redirectUrl = '/admin/dashboard';
-                } else {
-                    $redirectUrl = '/dashboard';
-                }
 
+                // Redirect to unified dashboard (Auth::dashboard will render role-specific content)
                 $data = [
                     'success' => true,
                     'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
-                    'redirect' => $redirectUrl,
+                    'redirect' => '/dashboard',
                     'user' => [
                         'name' => $user['name'],
                         'role' => $user['role']
                     ]
                 ];
+
+                return $this->response->setJSON($data);
+            
                 
                 return $this->response->setJSON($data);
             } else {
@@ -143,10 +136,31 @@ class Auth extends BaseController
                     ->orderBy('created_at', 'DESC')
                     ->limit(10)
                     ->get()->getResultArray();
+                
+                // Get all courses with teacher names and enrollment counts for admin
+                if ($this->db->tableExists('courses')) {
+                    $data['all_courses'] = $this->db->table('courses')
+                        ->select('courses.*, users.name as teacher_name')
+                        ->join('users', 'users.id = courses.teacher_id', 'left')
+                        ->orderBy('courses.created_at', 'DESC')
+                        ->get()->getResultArray();
+                    
+                    // Add student count for each course
+                    foreach ($data['all_courses'] as &$course) {
+                        if ($this->db->tableExists('enrollments')) {
+                            $course['students_count'] = $this->db->table('enrollments')
+                                ->where('course_id', $course['id'])
+                                ->countAllResults();
+                        } else {
+                            $course['students_count'] = 0;
+                        }
+                    }
+                } else {
+                    $data['all_courses'] = [];
+                }
                 break;
 
             case 'teacher':
-                
                 $data['total_courses'] = $this->db->tableExists('courses') ? 
                     $this->db->table('courses')->where('teacher_id', $userId)->countAllResults() : 0;
                 
@@ -156,8 +170,25 @@ class Auth extends BaseController
                         ->where('teacher_id', $userId)
                         ->select('id, title, description')
                         ->get()->getResultArray() : [];
-                    
-                $data['total_students'] = 0;
+
+                $enrollmentModel = new \App\Models\EnrollmentModel();
+                $courses = $data['courses'];
+                foreach ($courses as &$course) {        
+                    $course['students_count'] = count($enrollmentModel->getCourseEnrollments($course['id']));
+                }
+                unset($course);
+                $data['courses'] = $courses;
+
+                $uniqueStudentIds = [];
+
+                foreach ($data['courses'] as $course) {
+                    $enrollments = $enrollmentModel->getCourseEnrollments($course['id']);
+                    foreach ($enrollments as $enrollment) {
+                        $uniqueStudentIds[$enrollment['user_id']] = true;
+                    }
+                }
+                $data['total_students'] = count($uniqueStudentIds);
+
                 $data['pending_assignments'] = [];
                 $data['notifications'] = [];
                 break;
@@ -213,14 +244,18 @@ class Auth extends BaseController
                     $data['enrolled_courses'] = [];
                 }
 
-                // Get enrolled course IDs
+                // Get materials for enrolled courses with course information
                 $enrolledCourseIds = array_column($data['enrolled_courses'], 'course_id');
-                $materialModel = new \App\Models\MaterialModel();
-                $materials = [];
-                if (!empty($enrolledCourseIds)) {
-                    $materials = $materialModel->whereIn('course_id', $enrolledCourseIds)->findAll();
+                $data['materials'] = [];
+                if (!empty($enrolledCourseIds) && $this->db->tableExists('materials')) {
+                    $data['materials'] = $this->db->table('materials')
+                        ->select('materials.*, courses.title as course_title, courses.course_code')
+                        ->join('courses', 'courses.id = materials.course_id')
+                        ->whereIn('materials.course_id', $enrolledCourseIds)
+                        ->orderBy('materials.created_at', 'DESC')
+                        ->get()
+                        ->getResultArray();
                 }
-                $data['materials'] = $materials;
                 break;
         }
 

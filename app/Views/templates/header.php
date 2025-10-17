@@ -69,6 +69,7 @@
                                     <i class="bi bi-book"></i> Manage Courses
                                 </a>
                             </li>
+                           
                             <li class="nav-item">
                                 <a class="nav-link <?= strpos(current_url(), 'admin/reports') !== false ? 'active' : '' ?>" 
                                    href="<?= base_url('/admin/reports') ?>">
@@ -83,6 +84,7 @@
                                     <i class="bi bi-journal-text"></i> My Courses
                                 </a>
                             </li>
+    
                             <li class="nav-item">
                                 <a class="nav-link <?= strpos(current_url(), 'teacher/assignments') !== false ? 'active' : '' ?>" 
                                    href="<?= base_url('/teacher/assignments') ?>">
@@ -204,6 +206,6 @@
         <?php endif; ?>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+   
 </body>
 </html>

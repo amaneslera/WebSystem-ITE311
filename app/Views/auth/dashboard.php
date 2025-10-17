@@ -126,6 +126,60 @@
                     <?php endif; ?>
                 </div>
             </div>
+            
+            <!-- All Courses Management for Admin -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">All Courses</h5>
+                    <a href="<?= base_url('/courses') ?>" class="btn btn-sm btn-primary">Manage All Courses</a>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($all_courses ?? [])): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Course Title</th>
+                                        <th>Instructor</th>
+                                        <th>Students</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($all_courses as $course): ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?= $course['title'] ?></strong><br>
+                                            <small class="text-muted"><?= $course['course_code'] ?? 'N/A' ?></small>
+                                        </td>
+                                        <td><?= $course['teacher_name'] ?? 'Unassigned' ?></td>
+                                        <td>
+                                            <span class="badge bg-info"><?= $course['students_count'] ?? 0 ?> students</span>
+                                        </td>
+                                        <td>
+                                            <a href="<?= base_url('admin/course/' . $course['id'] . '/upload') ?>" 
+                                               class="btn btn-sm btn-primary" 
+                                               title="Upload Materials">
+                                                <i class="bi bi-upload"></i> Upload Materials
+                                            </a>
+                                            <a href="<?= base_url('/courses/edit/' . $course['id']) ?>" 
+                                               class="btn btn-sm btn-outline-secondary"
+                                               title="Edit Course">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No courses available in the system.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         <?php elseif (session()->get('role') === 'teacher'): ?>
             <!-- Teacher Dashboard Content -->
             <div class="row">
@@ -141,13 +195,20 @@
                             <?php if (!empty($courses ?? [])): ?>
                                 <div class="list-group">
                                     <?php foreach ($courses as $course): ?>
-                                    <a href="<?= base_url('/course/' . $course['id']) ?>" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h5 class="mb-1"><?= $course['title'] ?></h5>
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                                <div>
+                                                    <h5 class="mb-1"><?= $course['title'] ?></h5>
+                                                    <p class="mb-1"><?= $course['description'] ?? 'No description available' ?></p>
+                                                </div>
+                                                <div>
+                                                    <a href="<?= base_url('teacher/course/' . $course['id'] . '/upload') ?>" class="btn btn-sm btn-primary">
+                                                        <i class="bi bi-upload"></i> Upload Materials
+                                                    </a>
+                                                </div>
+                                            </div>
                                             <small><?= isset($course['students_count']) ? $course['students_count'] . ' students' : 'No students' ?></small>
                                         </div>
-                                        <p class="mb-1"><?= $course['description'] ?? 'No description available' ?></p>
-                                    </a>
                                     <?php endforeach; ?>
                                 </div>
                             <?php else: ?>
@@ -492,21 +553,54 @@
             
             <!-- Downloadable Materials Section for Students -->
             <div class="card mt-4">
-                <div class="card-header">Course Materials</div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Course Materials</h5>
+                    <span class="badge bg-primary rounded-pill"><?= count($materials ?? []) ?> files</span>
+                </div>
                 <div class="card-body">
                     <?php if (!empty($materials)): ?>
-                        <ul class="list-group">
-                            <?php foreach ($materials as $material): ?>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <?= esc($material['file_name']) ?>
-                                    <a href="<?= base_url('materials/download/' . $material['id']) ?>" class="btn btn-sm btn-success">
-                                        Download
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>File Name</th>
+                                        <th>Uploaded</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($materials as $material): ?>
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-info"><?= esc($material['course_code'] ?? 'N/A') ?></span>
+                                            <br>
+                                            <small class="text-muted"><?= esc($material['course_title']) ?></small>
+                                        </td>
+                                        <td>
+                                            <i class="bi bi-file-earmark-<?= pathinfo($material['file_name'], PATHINFO_EXTENSION) == 'pdf' ? 'pdf' : 'text' ?>"></i>
+                                            <?= esc($material['file_name']) ?>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                <?= date('M d, Y', strtotime($material['created_at'])) ?>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <a href="<?= base_url('materials/download/' . $material['id']) ?>" 
+                                               class="btn btn-success btn-sm">
+                                                <i class="bi bi-download"></i> Download
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php else: ?>
-                        <div class="alert alert-info">No materials available for your courses.</div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No materials available for your courses yet.
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
