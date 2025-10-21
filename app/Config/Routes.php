@@ -31,6 +31,15 @@ $routes->get('/materials/delete/(:num)', 'Materials::delete/$1');
 $routes->get('/materials/download/(:num)', 'Materials::download/$1');
 $routes->get('/announcements', 'Announcement::index');
 
+// Notification Routes (Required only)
+$routes->get('/notifications', 'Notifications::get');
+$routes->post('/notifications/mark_read/(:num)', 'Notifications::mark_as_read/$1');
+
+// Notification Routes (Traditional)
+$routes->get('/notifications/all', 'Notifications::index');
+$routes->get('/notifications/mark-read/(:num)', 'Notifications::markRead/$1');
+$routes->get('/notifications/mark-all-read', 'Notifications::markAllRead');
+
 $routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
     $routes->get('dashboard', 'Teacher::dashboard');
     // Add other teacher routes here

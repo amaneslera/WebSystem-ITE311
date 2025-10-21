@@ -607,8 +607,13 @@
         <?php endif; ?>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery MUST load first -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Notification JavaScript -->
+    <script src="<?= base_url('assets/js/notifications.js') ?>"></script>
+    
     <script>
 $(document).ready(function() {
     // Remove all existing alerts when page loads

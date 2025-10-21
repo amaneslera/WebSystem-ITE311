@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\EnrollmentModel;
+use App\Models\CourseModel;
+use App\Models\NotificationModel;
 use CodeIgniter\RESTful\ResourceController;
 
 class Course extends ResourceController
@@ -59,9 +61,14 @@ class Course extends ResourceController
                 ->where('courses.id', $courseId)
                 ->get()->getRowArray();
             
-            // Update session data - add this block
+            // Update session data
             $currentCount = session()->get('total_courses') ?? 0;
             session()->set('total_courses', $currentCount + 1);
+            
+            // ✅ CREATE NOTIFICATION FOR THE STUDENT (Fixed column name)
+            $notificationModel = new NotificationModel();
+            $message = "You have been enrolled in " . $course['title'] . " (" . $course['course_code'] . ")";
+            $notificationModel->createNotification($userId, $message);
             
             return $this->response->setJSON([
                 'success' => true,
