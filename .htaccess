@@ -4,6 +4,21 @@
     # Change this to match your project folder name
     RewriteBase /ITE311-ESLERA/
 
+    # SECURITY: Block directory traversal attempts - MUST BE FIRST
+    # Block any URL containing ../ in the request
+    RewriteCond %{REQUEST_URI} \.\./ [NC,OR]
+    RewriteCond %{THE_REQUEST} \.\./ [NC,OR]
+    # Block URL-encoded traversal sequences
+    RewriteCond %{REQUEST_URI} %2e%2e [NC,OR]
+    RewriteCond %{THE_REQUEST} %2e%2e [NC,OR]
+    # Block backslash traversal (Windows)
+    RewriteCond %{REQUEST_URI} \\\.\\\. [OR]
+    RewriteCond %{THE_REQUEST} \\\.\\\.
+    RewriteRule ^.*$ - [F,L]
+
+    # SECURITY: Block access to sensitive directories
+    RewriteRule ^(app|system|tests|writable|\.git) - [F,L]
+
     # If the request is not already pointing to /public, redirect it there
     RewriteCond %{REQUEST_URI} !^/ITE311-ESLERA/public/
     RewriteRule ^(.*)$ public/$1 [L]

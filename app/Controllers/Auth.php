@@ -23,7 +23,7 @@ class Auth extends BaseController
 
         if ($this->request->is('post')) {
             $rules = [
-                'name' => 'required|min_length[3]|max_length[100]',
+                'name' => 'required|min_length[3]|max_length[100]|alpha_space',
                 'email' => 'required|valid_email|is_unique[users.email]',
                 'password' => 'required|min_length[6]|max_length[255]',
                 'password_confirm' => 'matches[password]'

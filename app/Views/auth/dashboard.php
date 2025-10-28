@@ -25,7 +25,7 @@
     </style>
 </head>
 <body>
-    <?= $this->include('templates/header') ?>
+     <?= $this->include('templates/header') ?> 
 
     <div class="container-fluid mt-4">
         <h2 class="mb-4">Welcome, <?= session()->get('name') ?>!</h2>
