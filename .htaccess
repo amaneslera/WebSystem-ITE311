@@ -1,23 +1,43 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    Options -Indexes +FollowSymLinks
 
     # Change this to match your project folder name
     RewriteBase /ITE311-ESLERA/
 
-    # SECURITY: Block directory traversal attempts - MUST BE FIRST
-    # Block any URL containing ../ in the request
+    # SECURITY: Block directory traversal attempts - ULTRA ENHANCED - MUST BE FIRST
+    # Block ANY request containing .. in ANY form (before URL decoding)
+    RewriteCond %{THE_REQUEST} \.\. [NC,OR]
+    # Block ../ patterns in URI
     RewriteCond %{REQUEST_URI} \.\./ [NC,OR]
     RewriteCond %{THE_REQUEST} \.\./ [NC,OR]
-    # Block URL-encoded traversal sequences
+    # Block URL-encoded directory traversal %2e%2e (.. encoded)
     RewriteCond %{REQUEST_URI} %2e%2e [NC,OR]
     RewriteCond %{THE_REQUEST} %2e%2e [NC,OR]
-    # Block backslash traversal (Windows)
-    RewriteCond %{REQUEST_URI} \\\.\\\. [OR]
-    RewriteCond %{THE_REQUEST} \\\.\\\.
+    # Block backslash directory traversal (Windows)
+    RewriteCond %{REQUEST_URI} \\\.\\\. [NC,OR]
+    RewriteCond %{THE_REQUEST} \\\.\\\. [NC,OR]
+    # Block ..\ pattern
+    RewriteCond %{REQUEST_URI} \.\.\\ [NC,OR]
+    # Block null bytes
+    RewriteCond %{REQUEST_URI} %00 [NC,OR]
+    # Block double slashes (multiple consecutive)
+    RewriteCond %{REQUEST_URI} /{2,} [OR]
+    # Block suspicious query strings
+    RewriteCond %{QUERY_STRING} \.\. [NC,OR]
+    RewriteCond %{QUERY_STRING} %2e%2e [NC]
     RewriteRule ^.*$ - [F,L]
 
-    # SECURITY: Block access to sensitive directories
-    RewriteRule ^(app|system|tests|writable|\.git) - [F,L]
+    # SECURITY: Block direct access to sensitive directories and files
+    RewriteRule ^(app|system|tests|writable|vendor|\.git|\.env) - [F,L]
+    
+    # Block access to PHP files in root
+    RewriteRule ^(spark|preload\.php) - [F,L]
+    
+    # SECURITY: Block any attempt to escape project directory
+    # This catches patterns like /../ or /.. at the end
+    RewriteCond %{REQUEST_URI} ^/ITE311-ESLERA/\.\.
+    RewriteRule .* - [F,L]
 
     # If the request is not already pointing to /public, redirect it there
     RewriteCond %{REQUEST_URI} !^/ITE311-ESLERA/public/

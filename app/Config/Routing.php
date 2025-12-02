@@ -84,7 +84,7 @@ class Routing extends BaseRouting
      * Example:
      *  public $override404 = 'App\Errors::show404';
      */
-    public ?string $override404 = null;
+    public ?string $override404 = 'Home::index';
 
     /**
      * If TRUE, the system will attempt to match the URI against
@@ -93,6 +93,7 @@ class Routing extends BaseRouting
      * defined routes.
      *
      * If FALSE, will stop searching and do NO automatic routing.
+     * SECURITY: Set to false to prevent unauthorized access
      */
     public bool $autoRoute = false;
 

@@ -45,6 +45,7 @@ class EnrollmentModel extends Model
     
     /**
      * Get all courses a user is enrolled in
+     * Excludes soft-deleted teachers from results
      * 
      * @param int $user_id The user ID
      * @return array Array of course data the user is enrolled in
@@ -53,7 +54,7 @@ class EnrollmentModel extends Model
     {
         return $this->select('enrollments.*, courses.title as course_title, courses.description, users.name as teacher_name')
             ->join('courses', 'courses.id = enrollments.course_id')
-            ->join('users', 'users.id = courses.teacher_id')
+            ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'') // Exclude inactive teachers
             ->where('enrollments.user_id', $user_id)
             ->findAll();
     }
@@ -76,6 +77,7 @@ class EnrollmentModel extends Model
     
     /**
      * Get all students enrolled in a specific course
+     * Excludes soft-deleted students from results
      * 
      * @param int $course_id The course ID
      * @return array Array of student data enrolled in the course
@@ -83,7 +85,7 @@ class EnrollmentModel extends Model
     public function getCourseEnrollments($course_id)
     {
         return $this->select('enrollments.*, users.name, users.email')
-            ->join('users', 'users.id = enrollments.user_id')
+            ->join('users', 'users.id = enrollments.user_id AND users.status = \'active\'') // Exclude inactive students
             ->where('enrollments.course_id', $course_id)
             ->findAll();
     }

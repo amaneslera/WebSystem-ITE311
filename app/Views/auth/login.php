@@ -132,7 +132,9 @@
                             
                             // Wait 2 seconds then redirect
                             setTimeout(function() {
-                                window.location.href = '<?= base_url() ?>' + response.redirect;
+                                window.location.href = response.redirect.startsWith('/') ? 
+                                    '<?= base_url() ?>' + response.redirect.substring(1) : 
+                                    '<?= base_url() ?>' + response.redirect;
                             }, 2000);
                         } else {
                             // Display error message

@@ -40,7 +40,7 @@ class Materials extends Controller
             if (!$validation->withRequest($this->request)->run()) {
                 $errors = $validation->getErrors();
                 session()->setFlashdata('error', implode(' ', $errors));
-                return redirect()->to('/materials/upload/' . $course_id);
+                return redirect()->to(base_url('materials/upload/' . $course_id));
             }
 
             $file = $this->request->getFile('material_file');
@@ -70,18 +70,18 @@ class Materials extends Controller
                     
                     if ($result) {
                         session()->setFlashdata('success', 'Material uploaded successfully!');
-                        return redirect()->to('/materials/upload/' . $course_id);
+                        return redirect()->to(base_url('materials/upload/' . $course_id));
                     } else {
                         // If database insert fails, delete the uploaded file
                         unlink($uploadPath . '/' . $newName);
                         $errors = $model->errors();
                         $errorMsg = !empty($errors) ? implode(', ', $errors) : 'Unknown database error';
                         session()->setFlashdata('error', 'Failed to save material to database: ' . $errorMsg);
-                        return redirect()->to('/materials/upload/' . $course_id);
+                        return redirect()->to(base_url('materials/upload/' . $course_id));
                     }
                 } else {
                     session()->setFlashdata('error', 'Failed to move uploaded file: ' . $file->getErrorString());
-                    return redirect()->to('/materials/upload/' . $course_id);
+                    return redirect()->to(base_url('materials/upload/' . $course_id));
                 }
             } else {
                 $errorMsg = 'Invalid file upload.';
@@ -89,7 +89,7 @@ class Materials extends Controller
                     $errorMsg .= ' Error: ' . $file->getErrorString();
                 }
                 session()->setFlashdata('error', $errorMsg);
-                return redirect()->to('/materials/upload/' . $course_id);
+                return redirect()->to(base_url('materials/upload/' . $course_id));
             }
         }
 
@@ -123,7 +123,7 @@ class Materials extends Controller
     {
         // Check if user is logged in
         if (!session()->get('isLoggedIn')) {
-            return redirect()->to('/login')->with('error', 'Please log in to download materials.');
+            return redirect()->to(base_url('login'))->with('error', 'Please log in to download materials.');
         }
 
         $model = new \App\Models\MaterialModel();

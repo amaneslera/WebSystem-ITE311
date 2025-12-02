@@ -35,6 +35,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'roleauth'      => \App\Filters\RoleAuth::class,
+        'security'      => \App\Filters\SecurityHeaders::class,
     ];
 
     /**
@@ -73,11 +74,13 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'security',     // Custom security filter for path traversal
+            'invalidchars', // Invalid character check
             // 'honeypot',
             // 'csrf',
-            // 'invalidchars',
         ],
         'after' => [
+            'security',     // Add security headers
             // 'honeypot',
             // 'secureheaders',
         ],

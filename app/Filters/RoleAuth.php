@@ -29,18 +29,13 @@ class RoleAuth implements FilterInterface
         $role = $session->get('role');
         $uri = service('uri')->getPath();
 
-        // Allow public pages for guests
+        // Allow access if not logged in (no role in session)
         if (!$role) {
             return;
         }
 
-        // Allow all logged-in users to access unified dashboard
-        if ($uri === 'dashboard') {
-            return;
-        }
-
-        // Admin: allow /admin/*
-        if ($role === 'admin' && strpos($uri, 'admin') === 0) {
+        // Allow all logged-in users to access /announcements
+        if ($uri === 'announcements') {
             return;
         }
 
@@ -49,12 +44,17 @@ class RoleAuth implements FilterInterface
             return;
         }
 
+        // Admin: allow /admin/*
+        if ($role === 'admin' && strpos($uri, 'admin') === 0) {
+            return;
+        }
+
         // Student: allow /student/* and /announcements
         if ($role === 'student' && (strpos($uri, 'student') === 0 || $uri === 'announcements')) {
             return;
         }
 
-        // Not permitted
+        // If not allowed, redirect to /announcements with error
         session()->setFlashdata('error', 'Access Denied: Insufficient Permissions');
         return redirect()->to('/announcements');
     }

@@ -53,11 +53,11 @@ class Course extends ResourceController
         ]);
         
         if ($result) {
-            // Get course details to return
+            // Get course details to return (exclude soft-deleted teachers)
             $db = \Config\Database::connect();
             $course = $db->table('courses')
                 ->select('courses.*, users.name as teacher_name')
-                ->join('users', 'users.id = courses.teacher_id')
+                ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
                 ->where('courses.id', $courseId)
                 ->get()->getRowArray();
             

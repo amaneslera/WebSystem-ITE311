@@ -6,6 +6,11 @@ use CodeIgniter\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Run database seeds.
+     *
+     * @return void
+     */
     public function run()
     {
         // Admin user
@@ -38,7 +43,9 @@ class UserSeeder extends Seeder
             ],
         ];
         
-        $this->db->table('users')->insertBatch($teachers);
+        foreach ($teachers as $teacher) {
+            $this->db->table('users')->insert($teacher);
+        }
 
         // Student users
         $students = [
@@ -68,6 +75,8 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        $this->db->table('users')->insertBatch($students);
+        foreach ($students as $student) {
+            $this->db->table('users')->insert($student);
+        }
     }
 }

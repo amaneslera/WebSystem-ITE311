@@ -1,6 +1,14 @@
 # Disable directory browsing
 Options -Indexes
 
+# Disable server signature
+ServerSignature Off
+
+# Disable access to .htaccess, .htpasswd, .env files
+<FilesMatch "^\.">
+	Require all denied
+</FilesMatch>
+
 # ----------------------------------------------------------------------
 # Rewrite engine
 # ----------------------------------------------------------------------
@@ -8,13 +16,44 @@ Options -Indexes
 # Turning on the rewrite engine is necessary for the following rules and features.
 # FollowSymLinks must be enabled for this to work.
 <IfModule mod_rewrite.c>
-	Options +FollowSymlinks
+	Options +FollowSymlinks -Indexes
 	RewriteEngine On
 
-	# SECURITY: Block directory traversal attempts
+	# SECURITY: Block directory traversal attempts - ENHANCED
+	# Block ../ and /.. patterns
 	RewriteCond %{THE_REQUEST} \.\./ [NC,OR]
+	RewriteCond %{REQUEST_URI} \.\./ [NC,OR]
+	RewriteCond %{THE_REQUEST} /\.\. [NC,OR]
+	RewriteCond %{REQUEST_URI} /\.\. [NC,OR]
+	# Block URL-encoded directory traversal %2e%2e (.. encoded)
 	RewriteCond %{THE_REQUEST} %2e%2e [NC,OR]
-	RewriteCond %{THE_REQUEST} \\\.\\\.
+	RewriteCond %{REQUEST_URI} %2e%2e [NC,OR]
+	# Block backslash directory traversal (Windows)
+	RewriteCond %{THE_REQUEST} \\\.\\\. [NC,OR]
+	RewriteCond %{REQUEST_URI} \\\.\\\. [NC,OR]
+	# Block null bytes
+	RewriteCond %{REQUEST_URI} %00 [NC,OR]
+	# Block double slashes and complex traversal patterns
+	RewriteCond %{REQUEST_URI} // [OR]
+	RewriteCond %{REQUEST_URI} /\.\. [NC,OR]
+	RewriteCond %{REQUEST_URI} \.\./\.\./\.\. [NC,OR]
+	RewriteCond %{REQUEST_URI} \.\.//\.\. [NC,OR]
+	# Block localhost traversal attempts
+	RewriteCond %{THE_REQUEST} localhost/\.\. [NC,OR]
+	RewriteCond %{HTTP_HOST} localhost [NC]
+	RewriteCond %{REQUEST_URI} ^/\.\. [NC,OR]
+	# Block suspicious patterns
+	RewriteCond %{QUERY_STRING} \.\.\/ [NC,OR]
+	RewriteCond %{QUERY_STRING} %2e%2e [NC]
+	RewriteRule .* - [F,L]
+
+	# SECURITY: Block access to sensitive files
+	RewriteRule ^\.env - [F,L]
+	RewriteRule ^composer\.(json|lock) - [F,L]
+	RewriteRule ^package(-lock)?\.json - [F,L]
+
+	# SECURITY: Block access to XAMPP dashboard
+	RewriteCond %{REQUEST_URI} ^/dashboard [NC]
 	RewriteRule .* - [F,L]
 
 	# If you installed CodeIgniter in a subfolder, you will need to

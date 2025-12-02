@@ -3,7 +3,12 @@
 namespace App\Controllers;
 
 use CodeIgniter\Controller;
+use App\Models\UserModel;
 
+/**
+ * Users Controller
+ * Handles user management with soft delete functionality
+ */
 class Users extends Controller
 {
     protected $db;
@@ -12,26 +17,25 @@ class Users extends Controller
     public function __construct()
     {
         $this->db = \Config\Database::connect();
-        $this->userModel = $this->db->table('users');
+        // Use the new UserModel with soft delete support
+        $this->userModel = new UserModel();
     }
 
     /**
-     * Display all users (Admin only)
+     * Display all active users (Admin only)
+     * Shows users with their status (active/inactive)
      */
     public function index()
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
+        // Get all users with status information (excluding soft-deleted)
         $data = [
             'title' => 'User Management',
-            'users' => $this->userModel
-                ->select('id, name, email, role, created_at, updated_at')
-                ->orderBy('created_at', 'DESC')
-                ->get()
-                ->getResultArray()
+            'users' => $this->userModel->getAllUsersWithStatus()
         ];
 
         return view('users/index', $data);
@@ -44,7 +48,7 @@ class Users extends Controller
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
         $data = [
@@ -62,7 +66,7 @@ class Users extends Controller
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
         $rules = [
@@ -83,14 +87,12 @@ class Users extends Controller
         $userData = [
             'name' => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role' => $this->request->getPost('role'),
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'password' => $this->request->getPost('password'), // Will be hashed in model
+            'role' => $this->request->getPost('role')
         ];
 
-        if ($this->userModel->insert($userData)) {
-            return redirect()->to('/users')->with('success', 'User created successfully.');
+        if ($this->userModel->createUser($userData)) {
+            return redirect()->to(base_url('users'))->with('success', 'User created successfully.');
         } else {
             return redirect()->back()->with('error', 'Failed to create user.')->withInput();
         }
@@ -98,18 +100,20 @@ class Users extends Controller
 
     /**
      * Show edit user form
+     * Only shows if user is active (not soft-deleted)
      */
     public function edit($id)
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
-        $user = $this->userModel->where('id', $id)->get()->getRowArray();
+        // Get active user only (status = 'active')
+        $user = $this->userModel->getUserById($id);
 
         if (!$user) {
-            return redirect()->to('/users')->with('error', 'User not found.');
+            return redirect()->to(base_url('users'))->with('error', 'User not found.');
         }
 
         $data = [
@@ -123,18 +127,20 @@ class Users extends Controller
 
     /**
      * Update user
+     * Only updates active users (status = 'active')
      */
     public function update($id)
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
-        $user = $this->userModel->where('id', $id)->get()->getRowArray();
+        // Get active user only
+        $user = $this->userModel->getUserById($id);
 
         if (!$user) {
-            return redirect()->to('/users')->with('error', 'User not found.');
+            return redirect()->to(base_url('users'))->with('error', 'User not found.');
         }
 
         // Validation rules
@@ -161,52 +167,136 @@ class Users extends Controller
         $userData = [
             'name' => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
-            'role' => $this->request->getPost('role'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'role' => $this->request->getPost('role')
         ];
 
         // Update password only if provided
         if ($this->request->getPost('password')) {
-            $userData['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+            $userData['password'] = $this->request->getPost('password'); // Will be hashed in model
         }
 
-        if ($this->userModel->where('id', $id)->update($userData)) {
-            return redirect()->to('/users')->with('success', 'User updated successfully.');
+        if ($this->userModel->updateUser($id, $userData)) {
+            return redirect()->to(base_url('users'))->with('success', 'User updated successfully.');
         } else {
             return redirect()->back()->with('error', 'Failed to update user.')->withInput();
         }
     }
 
     /**
-     * Delete user (Cannot delete admin users)
+     * Delete user - IDENTICAL TO DEACTIVATE (sets status = 'inactive')
+     * Does NOT permanently remove from database
+     * Cannot delete admin users or yourself
      */
     public function delete($id)
     {
         // Check if user is logged in and is admin
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Admin only.');
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
-        $user = $this->userModel->where('id', $id)->get()->getRowArray();
+        // Get active user only
+        $user = $this->userModel->getUserById($id);
 
         if (!$user) {
-            return redirect()->to('/users')->with('error', 'User not found.');
+            return redirect()->to(base_url('users'))->with('error', 'User not found.');
         }
 
         // Prevent deleting admin users
         if ($user['role'] === 'admin') {
-            return redirect()->to('/users')->with('error', 'Cannot delete admin users. You can only edit admin accounts.');
+            return redirect()->to(base_url('users'))->with('error', 'Cannot delete admin users. You can only edit admin accounts.');
         }
 
         // Prevent deleting yourself
         if ($user['id'] == session()->get('user_id')) {
-            return redirect()->to('/users')->with('error', 'You cannot delete your own account.');
+            return redirect()->to(base_url('users'))->with('error', 'You cannot delete your own account.');
         }
 
-        if ($this->userModel->where('id', $id)->delete()) {
-            return redirect()->to('/users')->with('success', 'User deleted successfully.');
+        // Perform deactivation (same as delete - just sets status to inactive)
+        if ($this->userModel->deactivateUser($id)) {
+            return redirect()->to(base_url('users'))->with('success', 'User deleted successfully.');
         } else {
-            return redirect()->to('/users')->with('error', 'Failed to delete user.');
+            return redirect()->to(base_url('users'))->with('error', 'Failed to delete user.');
         }
+    }
+    
+    /**
+     * Deactivate user (sets status = 'inactive')
+     * Cannot deactivate admin users or yourself
+     */
+    public function deactivate($id)
+    {
+        // Check if user is logged in and is admin
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
+        }
+
+        // Get user
+        $user = $this->userModel->getUserById($id);
+
+        if (!$user) {
+            return redirect()->to(base_url('users'))->with('error', 'User not found.');
+        }
+
+        // Prevent deactivating admin users
+        if ($user['role'] === 'admin') {
+            return redirect()->to(base_url('users'))->with('error', 'Cannot deactivate admin users.');
+        }
+
+        // Prevent deactivating yourself
+        if ($user['id'] == session()->get('user_id')) {
+            return redirect()->to(base_url('users'))->with('error', 'You cannot deactivate your own account.');
+        }
+
+        // Perform deactivation
+        if ($this->userModel->deactivateUser($id)) {
+            return redirect()->to(base_url('users'))->with('success', 'User deactivated successfully.');
+        } else {
+            return redirect()->to(base_url('users'))->with('error', 'Failed to deactivate user.');
+        }
+    }
+    
+    /**
+     * Activate user (sets status = 'active')
+     */
+    public function activate($id)
+    {
+        // Check if user is logged in and is admin
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
+        }
+
+        // Get user
+        $user = $this->userModel->getUserById($id);
+
+        if (!$user) {
+            return redirect()->to(base_url('users'))->with('error', 'User not found.');
+        }
+
+        // Perform activation
+        if ($this->userModel->activateUser($id)) {
+            return redirect()->to(base_url('users'))->with('success', 'User activated successfully.');
+        } else {
+            return redirect()->to(base_url('users'))->with('error', 'Failed to activate user.');
+        }
+    }
+    
+    /**
+     * Display inactive users page
+     * Shows all users with status = 'inactive'
+     */
+    public function inactive()
+    {
+        // Check if user is logged in and is admin
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
+        }
+
+        // Get all inactive users
+        $inactiveUsers = $this->userModel->getInactiveUsers();
+
+        return view('users/inactive', [
+            'title' => 'Inactive Users',
+            'users' => $inactiveUsers
+        ]);
     }
 }

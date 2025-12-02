@@ -3,17 +3,20 @@
 namespace App\Controllers;
 
 use CodeIgniter\Controller;
+use App\Models\UserModel;
 
 class Auth extends BaseController
 {
     protected $db;
     protected $builder;
+    protected $userModel;
 
     public function __construct()
     {
         
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('users');
+        $this->userModel = new UserModel();
     }
 
     public function register()
@@ -41,7 +44,7 @@ class Auth extends BaseController
 
                 if ($this->builder->insert($newData)) {
                     session()->setFlashdata('success', 'Registration successful. You can now log in.');
-                    return redirect()->to('/login');
+                    return redirect()->to(base_url('login'));
                 } else {
                     session()->setFlashdata('error', 'Registration failed. Please try again.');
                 }
@@ -62,12 +65,15 @@ class Auth extends BaseController
             $email = $this->request->getPost('email');
             $password = $this->request->getPost('password');
             
+            // Only allow active users (status = 'active') to login
             $user = $this->builder
                 ->where('email', $email)
+                ->where('status', 'active')
                 ->get()
                 ->getRowArray();
 
              if ($user && password_verify($password, $user['password'])) {
+                
                 session()->set([
                     'user_id'    => $user['id'],
                     'name'       => $user['name'],
@@ -80,7 +86,7 @@ class Auth extends BaseController
                 $data = [
                     'success' => true,
                     'message' => 'Welcome back, ' . $user['name'] . '! You have successfully logged in.',
-                    'redirect' => '/dashboard',
+                    'redirect' => 'dashboard',
                     'user' => [
                         'name' => $user['name'],
                         'role' => $user['role']
@@ -105,7 +111,7 @@ class Auth extends BaseController
     public function dashboard()
     {
         if (!session()->get('isLoggedIn')) {
-            return redirect()->to('/login')->with('error', 'Please log in to access the dashboard');
+            return redirect()->to(base_url('login'))->with('error', 'Please log in to access the dashboard');
         }
 
 
@@ -125,23 +131,26 @@ class Auth extends BaseController
         switch ($role) {
             case 'admin':
                 
-                $data['total_teachers'] = $this->db->table('users')->where('role', 'teacher')->countAllResults();
-                $data['total_students'] = $this->db->table('users')->where('role', 'student')->countAllResults();
+                // Count only active users (not soft-deleted)
+                $data['total_teachers'] = $this->db->table('users')->where('role', 'teacher')->where('status', 'active')->countAllResults();
+                $data['total_students'] = $this->db->table('users')->where('role', 'student')->where('status', 'active')->countAllResults();
                 $data['total_courses'] = $this->db->tableExists('courses') ? 
                     $this->db->table('courses')->countAllResults() : 0;
                 
                 
+                // Show only active users (not soft-deleted)
                 $data['users'] = $this->db->table('users')
                     ->select('id, name, email, role, created_at')
+                    ->where('status', 'active')
                     ->orderBy('created_at', 'DESC')
                     ->limit(10)
                     ->get()->getResultArray();
                 
-                // Get all courses with teacher names and enrollment counts for admin
+                // Get all courses with teacher names (exclude soft-deleted teachers)
                 if ($this->db->tableExists('courses')) {
                     $data['all_courses'] = $this->db->table('courses')
                         ->select('courses.*, users.name as teacher_name')
-                        ->join('users', 'users.id = courses.teacher_id', 'left')
+                        ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'', 'left')
                         ->orderBy('courses.created_at', 'DESC')
                         ->get()->getResultArray();
                     
@@ -212,10 +221,10 @@ class Auth extends BaseController
                         $enrolledCourseIds = array_column($enrolledCourseIds, 'course_id');
                     }
                     
-                    // Get courses the student is not enrolled in
+                    // Get courses the student is not enrolled in (exclude soft-deleted teachers)
                     $builder = $this->db->table('courses')
                         ->select('courses.*, users.name as teacher_name')
-                        ->join('users', 'users.id = courses.teacher_id');
+                        ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'');
                     
                     if (!empty($enrolledCourseIds)) {
                         $builder->whereNotIn('courses.id', $enrolledCourseIds);
@@ -231,12 +240,12 @@ class Auth extends BaseController
                 $data['total_courses'] = $totalCourses;
                 session()->set('total_courses', $totalCourses); // Store in session for AJAX updates
 
-                // Get enrolled courses
+                // Get enrolled courses (exclude inactive teachers)
                 if ($this->db->tableExists('enrollments')) {
                     $data['enrolled_courses'] = $this->db->table('enrollments')
                         ->select('enrollments.*, courses.title, courses.description, users.name as teacher_name')
                         ->join('courses', 'courses.id = enrollments.course_id')
-                        ->join('users', 'users.id = courses.teacher_id')
+                        ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
                         ->where('enrollments.user_id', $userId)
                         ->get()
                         ->getResultArray();
@@ -266,6 +275,6 @@ class Auth extends BaseController
     public function logout()
     {
         session()->destroy();
-        return redirect()->to('/login');
+        return redirect()->to(base_url('login'));
     }
 }

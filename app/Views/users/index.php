@@ -1,7 +1,29 @@
 <?= view('templates/header') ?>
 
+<!-- 
+    User Management View - Active Users
+    This view displays only ACTIVE users (where status = 'active')
+    Inactive users can be viewed on the Inactive Users page
+-->
+
 <div class="container my-4">
         <main>
+            <!-- Navigation Tabs -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="<?= base_url('/users') ?>">
+                            <i class="bi bi-people-fill"></i> Active Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= base_url('/users/inactive') ?>">
+                            <i class="bi bi-archive"></i> Inactive Users
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">User Management</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
@@ -38,6 +60,7 @@
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
+                                    <th>Status</th>
                                     <th>Created</th>
                                     <th>Updated</th>
                                     <th>Actions</th>
@@ -54,6 +77,15 @@
                                             <?= ucfirst($user['role']) ?>
                                         </span>
                                     </td>
+                                    <td>
+                                        <?php if (isset($user['status'])): ?>
+                                            <span class="badge bg-<?= $user['status'] == 'active' ? 'success' : 'secondary' ?>">
+                                                <?= ucfirst($user['status']) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-success">Active</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= date('M d, Y', strtotime($user['created_at'])) ?></td>
                                     <td><?= date('M d, Y', strtotime($user['updated_at'])) ?></td>
                                     <td>
@@ -65,16 +97,36 @@
                                             </a>
                                             
                                             <?php if ($user['role'] !== 'admin'): ?>
-                                            <a href="<?= base_url('/users/delete/'.$user['id']) ?>" 
-                                               class="btn btn-outline-danger" 
-                                               title="Delete"
-                                               onclick="return confirm('Are you sure you want to delete this user?')">
-                                                <i class="bi bi-trash"></i> Delete
-                                            </a>
+                                                <?php 
+                                                $userStatus = isset($user['status']) ? $user['status'] : 'active';
+                                                ?>
+                                                
+                                                <?php if ($userStatus == 'active'): ?>
+                                                    <a href="<?= base_url('/users/deactivate/'.$user['id']) ?>" 
+                                                       class="btn btn-outline-warning" 
+                                                       title="Deactivate"
+                                                       onclick="return confirm('Are you sure you want to deactivate this user?')">
+                                                        <i class="bi bi-pause-circle"></i> Deactivate
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="<?= base_url('/users/activate/'.$user['id']) ?>" 
+                                                       class="btn btn-outline-success" 
+                                                       title="Activate"
+                                                       onclick="return confirm('Are you sure you want to activate this user?')">
+                                                        <i class="bi bi-play-circle"></i> Activate
+                                                    </a>
+                                                <?php endif; ?>
+                                                
+                                                <a href="<?= base_url('/users/delete/'.$user['id']) ?>" 
+                                                   class="btn btn-outline-danger" 
+                                                   title="Delete"
+                                                   onclick="return confirm('Are you sure you want to delete this user?')">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </a>
                                             <?php else: ?>
                                             <button class="btn btn-outline-secondary" 
                                                     disabled 
-                                                    title="Admin users cannot be deleted">
+                                                    title="Admin users cannot be deactivated or deleted">
                                                 <i class="bi bi-shield-lock"></i> Protected
                                             </button>
                                             <?php endif; ?>
@@ -97,7 +149,10 @@
             <div class="mt-3">
                 <small class="text-muted">
                     <i class="bi bi-info-circle"></i> 
-                    <strong>Note:</strong> Admin users cannot be deleted for security reasons, but can be edited.
+                    <strong>Note:</strong> Admin users cannot be deactivated or deleted for security reasons, but can be edited.
+                    <br>
+                    <span class="badge bg-success">Active</span> Users can login and access the system.
+                    <span class="badge bg-secondary">Inactive</span> Users cannot login but data is preserved.
                 </small>
             </div>
         </main>
