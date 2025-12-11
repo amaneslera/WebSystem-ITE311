@@ -37,7 +37,9 @@ class Auth extends BaseController
                     'name'       => $this->request->getPost('name'),
                     'email'      => $this->request->getPost('email'),
                     'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-                    'role'       => 'student', 
+                    'role'       => 'student',
+                    'program_id' => $this->request->getPost('program_id') ?: null,
+                    'year_level' => $this->request->getPost('year_level') ?: null,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
                 ];
@@ -198,6 +200,17 @@ class Auth extends BaseController
                 }
                 $data['total_students'] = count($uniqueStudentIds);
 
+                // Get total materials count for teacher
+                $data['total_materials'] = 0;
+                if ($this->db->tableExists('materials')) {
+                    $courseIds = array_column($data['courses'], 'id');
+                    if (!empty($courseIds)) {
+                        $data['total_materials'] = $this->db->table('materials')
+                            ->whereIn('course_id', $courseIds)
+                            ->countAllResults();
+                    }
+                }
+
                 $data['pending_assignments'] = [];
                 $data['notifications'] = [];
                 break;
@@ -207,6 +220,9 @@ class Auth extends BaseController
                 $data['enrolled_courses'] = [];
                 $data['recent_grades'] = [];
                 $data['upcoming_assignments'] = [];
+                
+                // Get student info for filtering
+                $student = $this->db->table('users')->where('id', $userId)->get()->getRowArray();
                 
                 // Get available courses (courses the student is not enrolled in)
                 if ($this->db->tableExists('courses')) {
@@ -221,18 +237,37 @@ class Auth extends BaseController
                         $enrolledCourseIds = array_column($enrolledCourseIds, 'course_id');
                     }
                     
-                    // Get courses the student is not enrolled in (exclude soft-deleted teachers)
+                    // Get courses filtered by student's program and year level
                     $builder = $this->db->table('courses')
                         ->select('courses.*, users.name as teacher_name')
-                        ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'');
+                        ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
+                        ->where('courses.status', 'active');
                     
                     if (!empty($enrolledCourseIds)) {
                         $builder->whereNotIn('courses.id', $enrolledCourseIds);
                     }
                     
+                    // Filter by student's program if set
+                    if (!empty($student['program_id'])) {
+                        $builder->groupStart()
+                                ->where('courses.program_id', $student['program_id'])
+                                ->orWhere('courses.program_id', null) // Include general courses
+                                ->groupEnd();
+                    }
+                    
+                    // Filter by student's year level if set
+                    if (!empty($student['year_level'])) {
+                        $builder->groupStart()
+                                ->where('courses.year_level', $student['year_level'])
+                                ->orWhere('courses.year_level', null) // Include courses for all years
+                                ->groupEnd();
+                    }
+                    
                     $data['available_courses'] = $builder->get()->getResultArray();
+                    $data['student_info'] = $student; // Pass student info to view
                 } else {
                     $data['available_courses'] = [];
+                    $data['student_info'] = $student;
                 }
 
                 // Get the total courses count

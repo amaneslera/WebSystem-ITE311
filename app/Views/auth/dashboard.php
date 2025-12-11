@@ -131,7 +131,15 @@
             <div class="card mt-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">All Courses</h5>
-                    <a href="<?= base_url('/courses') ?>" class="btn btn-sm btn-primary">Manage All Courses</a>
+                    <div>
+                        <button class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+                            <i class="bi bi-plus-circle"></i> Create Course
+                        </button>
+                        <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#enrollStudentModal">
+                            <i class="bi bi-person-plus"></i> Enroll Student
+                        </button>
+                        <a href="<?= base_url('/admin/courses') ?>" class="btn btn-sm btn-primary">View All</a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <?php if (!empty($all_courses ?? [])): ?>
@@ -157,12 +165,18 @@
                                             <span class="badge bg-info"><?= $course['students_count'] ?? 0 ?> students</span>
                                         </td>
                                         <td>
+                                            <button class="btn btn-sm btn-warning assign-teacher-btn" 
+                                                    data-course-id="<?= $course['id'] ?>"
+                                                    data-course-title="<?= $course['title'] ?>"
+                                                    title="Assign Teacher">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
                                             <a href="<?= base_url('admin/course/' . $course['id'] . '/upload') ?>" 
                                                class="btn btn-sm btn-primary" 
                                                title="Upload Materials">
-                                                <i class="bi bi-upload"></i> Upload Materials
+                                                <i class="bi bi-upload"></i>
                                             </a>
-                                            <a href="<?= base_url('/courses/edit/' . $course['id']) ?>" 
+                                            <a href="<?= base_url('/admin/courses/edit/' . $course['id']) ?>" 
                                                class="btn btn-sm btn-outline-secondary"
                                                title="Edit Course">
                                                 <i class="bi bi-pencil"></i>
@@ -182,32 +196,100 @@
             </div>
         <?php elseif (session()->get('role') === 'teacher'): ?>
             <!-- Teacher Dashboard Content -->
+            
+            <!-- Stats Cards Row -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card stat-card text-white bg-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">My Courses</h6>
+                                    <h2 class="display-4"><?= count($courses ?? []) ?></h2>
+                                </div>
+                                <i class="bi bi-book icon-large"></i>
+                            </div>
+                            <a href="<?= base_url('teacher/courses') ?>" class="btn btn-sm btn-light mt-3 w-100">
+                                View All Courses
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card stat-card text-white bg-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Total Students</h6>
+                                    <h2 class="display-4"><?= $total_students ?? 0 ?></h2>
+                                </div>
+                                <i class="bi bi-people icon-large"></i>
+                            </div>
+                            <small class="text-white-50">Across all courses</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card stat-card text-white bg-info h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Materials</h6>
+                                    <h2 class="display-4"><?= $total_materials ?? 0 ?></h2>
+                                </div>
+                                <i class="bi bi-file-earmark-text icon-large"></i>
+                            </div>
+                            <a href="<?= base_url('materials') ?>" class="btn btn-sm btn-light mt-3 w-100">
+                                Manage Materials
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">My Courses</h5>
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newCourseModal">
-                                <i class="bi bi-plus-circle"></i> Create New Course
-                            </button>
+                            <a href="<?= base_url('/teacher/courses') ?>" class="btn btn-sm btn-primary">
+                                <i class="bi bi-list-ul"></i> View All Courses
+                            </a>
                         </div>
                         <div class="card-body">
                             <?php if (!empty($courses ?? [])): ?>
                                 <div class="list-group">
                                     <?php foreach ($courses as $course): ?>
                                         <div class="list-group-item">
-                                            <div class="d-flex w-100 justify-content-between align-items-center">
-                                                <div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8 mb-2 mb-md-0">
                                                     <h5 class="mb-1"><?= $course['title'] ?></h5>
-                                                    <p class="mb-1"><?= $course['description'] ?? 'No description available' ?></p>
+                                                    <p class="mb-1 text-muted"><?= $course['description'] ?? 'No description available' ?></p>
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-people"></i> 
+                                                        <?= isset($course['students_count']) ? $course['students_count'] . ' students enrolled' : 'No students' ?>
+                                                    </small>
                                                 </div>
-                                                <div>
-                                                    <a href="<?= base_url('teacher/course/' . $course['id'] . '/upload') ?>" class="btn btn-sm btn-primary">
-                                                        <i class="bi bi-upload"></i> Upload Materials
-                                                    </a>
+                                                <div class="col-md-4 text-md-end">
+                                                    <div class="btn-group-vertical btn-group-sm w-100" role="group">
+                                                        <button class="btn btn-success teacher-enroll-btn mb-1" 
+                                                                data-course-id="<?= $course['id'] ?>"
+                                                                data-course-title="<?= $course['title'] ?>">
+                                                            <i class="bi bi-person-plus"></i> Enroll Student
+                                                        </button>
+                                                        <a href="<?= base_url('teacher/courses/' . $course['id'] . '/students') ?>" 
+                                                           class="btn btn-info mb-1">
+                                                            <i class="bi bi-people"></i> View Students
+                                                        </a>
+                                                        <a href="<?= base_url('teacher/course/' . $course['id'] . '/upload') ?>" 
+                                                           class="btn btn-primary">
+                                                            <i class="bi bi-upload"></i> Upload Materials
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <small><?= isset($course['students_count']) ? $course['students_count'] . ' students' : 'No students' ?></small>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -450,6 +532,56 @@
                         </div>
                     </div>
                     
+                    <!-- Completed Courses (Transfer/Prior Credits) -->
+                    <?php 
+                    $completedCourseModel = new \App\Models\CompletedCourseModel();
+                    $completedCourses = $completedCourseModel->getUserCompletedCourses(session()->get('user_id'));
+                    if (!empty($completedCourses)): 
+                    ?>
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-check-circle-fill"></i> Completed Courses (Transfer/Prior Credits)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Course Code</th>
+                                            <th>Course Name</th>
+                                            <th>Grade</th>
+                                            <th>Institution</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($completedCourses as $completed): ?>
+                                        <tr>
+                                            <td><strong><?= esc($completed['course_code']) ?></strong></td>
+                                            <td><?= esc($completed['course_name']) ?></td>
+                                            <td>
+                                                <?php if ($completed['grade']): ?>
+                                                    <span class="badge bg-success"><?= esc($completed['grade']) ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">N/A</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?= esc($completed['institution'] ?? 'This Institution') ?></td>
+                                            <td><?= $completed['completed_date'] ? date('M Y', strtotime($completed['completed_date'])) : 'N/A' ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="alert alert-info mb-0 mt-2">
+                                <i class="bi bi-info-circle"></i> These courses count towards prerequisite requirements.
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
                     <!-- Upcoming Deadlines -->
                     <div class="card">
                         <div class="card-header">
@@ -633,8 +765,11 @@ $(document).ready(function() {
         $button.prop('disabled', true)
                .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enrolling...');
         
-        // Send AJAX request using jQuery
-        $.post('<?= base_url('course/enroll') ?>', { course_id: courseId })
+        // Send AJAX request with CSRF token
+        $.post('<?= base_url('course/enroll') ?>', { 
+            course_id: courseId,
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        })
             .done(function(data) {
                 if (data.success) {
                     // Remove ALL existing alerts before adding a new one
@@ -646,9 +781,6 @@ $(document).ready(function() {
                         'Successfully enrolled in <strong>' + courseTitle + '</strong>!' +
                         '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
                         '</div>');
-                    
-                    // Add this before creating the new alert
-                    $('.container-fluid .alert-success').remove();
                     
                     $('.container-fluid').prepend($alert);
                     
@@ -711,7 +843,300 @@ $(document).ready(function() {
                        .html('<i class="bi bi-plus-circle"></i> Enroll');
             });
     });
+
+    // Admin: Assign Teacher Button
+    $('.assign-teacher-btn').click(function() {
+        const courseId = $(this).data('course-id');
+        const courseTitle = $(this).data('course-title');
+        $('#assignTeacherModal').data('course-id', courseId);
+        $('#assignCourseTitle').text(courseTitle);
+        $('#assignTeacherModal').modal('show');
+    });
+
+    // Admin: Assign Teacher Form Submit
+    $('#assignTeacherForm').submit(function(e) {
+        e.preventDefault();
+        const courseId = $('#assignTeacherModal').data('course-id');
+        const teacherId = $('#teacherSelect').val();
+
+        $.post('<?= base_url('admin/courses/assign-teacher') ?>', {
+            course_id: courseId,
+            teacher_id: teacherId,
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                alert(data.message);
+                $('#assignTeacherModal').modal('hide');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }).fail(function() {
+            alert('An error occurred. Please try again.');
+        });
+    });
+
+    // Admin: Enroll Student Form Submit
+    $('#enrollStudentForm').submit(function(e) {
+        e.preventDefault();
+        
+        $.post('<?= base_url('admin/courses/enroll-student') ?>', {
+            student_id: $('#adminStudentSelect').val(),
+            course_id: $('#adminCourseSelect').val(),
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                alert(data.message);
+                $('#enrollStudentModal').modal('hide');
+                $('#enrollStudentForm')[0].reset();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }).fail(function() {
+            alert('An error occurred. Please try again.');
+        });
+    });
+
+    // Teacher: Enroll Student Button
+    $('.teacher-enroll-btn').click(function() {
+        const courseId = $(this).data('course-id');
+        const courseTitle = $(this).data('course-title');
+        $('#teacherEnrollModal').data('course-id', courseId);
+        $('#teacherEnrollCourseTitle').text(courseTitle);
+        $('#teacherEnrollModal').modal('show');
+    });
+
+    // Teacher: Enroll Student Form Submit
+    $('#teacherEnrollForm').submit(function(e) {
+        e.preventDefault();
+        const courseId = $('#teacherEnrollModal').data('course-id');
+        const studentId = $('#teacherStudentSelect').val();
+
+        $.post('<?= base_url('teacher/courses/enroll-student') ?>', {
+            student_id: studentId,
+            course_id: courseId,
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                let message = data.message;
+                if (data.prerequisite_warning) {
+                    message += '\\n\\nWarning: Student has not completed prerequisites!';
+                }
+                alert(message);
+                $('#teacherEnrollModal').modal('hide');
+                $('#teacherEnrollForm')[0].reset();
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }).fail(function() {
+            alert('An error occurred. Please try again.');
+        });
+    });
 });
 </script>
+
+<!-- Admin: Create Course Modal -->
+<div class="modal fade" id="createCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="<?= base_url('admin/courses/create') ?>" method="post">
+                <?= csrf_field() ?>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Course Code</label>
+                            <input type="text" name="course_code" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Course Title</label>
+                            <input type="text" name="title" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Units</label>
+                            <input type="number" name="units" class="form-control" value="3" min="1" max="6">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Students</label>
+                            <input type="number" name="max_students" class="form-control" placeholder="Leave empty for unlimited">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Semester</label>
+                            <select name="semester" class="form-select">
+                                <option value="1st Semester">1st Semester</option>
+                                <option value="2nd Semester">2nd Semester</option>
+                                <option value="Summer">Summer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Assign Teacher</label>
+                        <select name="teacher_id" class="form-select" required>
+                            <option value="">Select Teacher</option>
+                            <?php if (!empty($all_courses)): ?>
+                                <?php 
+                                $userModel = new \App\Models\UserModel();
+                                $teachers = $userModel->where('role', 'teacher')->where('status', 'active')->findAll();
+                                foreach ($teachers as $teacher): 
+                                ?>
+                                    <option value="<?= $teacher['id'] ?>"><?= $teacher['name'] ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Admin: Assign Teacher Modal -->
+<div class="modal fade" id="assignTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Teacher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="assignTeacherForm">
+                <div class="modal-body">
+                    <p>Course: <strong id="assignCourseTitle"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Select Teacher</label>
+                        <select id="teacherSelect" class="form-select" required>
+                            <option value="">Choose teacher...</option>
+                            <?php 
+                            if (session()->get('role') === 'admin') {
+                                $userModel = new \App\Models\UserModel();
+                                $teachers = $userModel->where('role', 'teacher')->where('status', 'active')->findAll();
+                                foreach ($teachers as $teacher): 
+                            ?>
+                                <option value="<?= $teacher['id'] ?>"><?= $teacher['name'] ?></option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign Teacher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Admin: Enroll Student Modal -->
+<div class="modal fade" id="enrollStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manually Enroll Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="enrollStudentForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Student</label>
+                        <select id="adminStudentSelect" class="form-select" required>
+                            <option value="">Choose student...</option>
+                            <?php 
+                            if (session()->get('role') === 'admin') {
+                                $userModel = new \App\Models\UserModel();
+                                $students = $userModel->where('role', 'student')->where('status', 'active')->findAll();
+                                foreach ($students as $student): 
+                            ?>
+                                <option value="<?= $student['id'] ?>"><?= $student['name'] ?> (<?= $student['email'] ?>)</option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Course</label>
+                        <select id="adminCourseSelect" class="form-select" required>
+                            <option value="">Choose course...</option>
+                            <?php 
+                            if (session()->get('role') === 'admin' && !empty($all_courses)) {
+                                foreach ($all_courses as $course): 
+                            ?>
+                                <option value="<?= $course['id'] ?>"><?= $course['title'] ?> (<?= $course['course_code'] ?>)</option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Admin can override all restrictions (capacity, prerequisites, schedule conflicts)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Enroll Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Teacher: Enroll Student Modal -->
+<div class="modal fade" id="teacherEnrollModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enroll Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="teacherEnrollForm">
+                <div class="modal-body">
+                    <p>Course: <strong id="teacherEnrollCourseTitle"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Select Student</label>
+                        <select id="teacherStudentSelect" class="form-select" required>
+                            <option value="">Choose student...</option>
+                            <?php 
+                            if (session()->get('role') === 'teacher') {
+                                $userModel = new \App\Models\UserModel();
+                                $students = $userModel->where('role', 'student')->where('status', 'active')->findAll();
+                                foreach ($students as $student): 
+                            ?>
+                                <option value="<?= $student['id'] ?>"><?= $student['name'] ?> (<?= $student['student_id'] ?? $student['email'] ?>)</option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> System will check prerequisites and show warnings if not met.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Enroll Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

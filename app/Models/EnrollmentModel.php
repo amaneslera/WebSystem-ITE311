@@ -103,4 +103,70 @@ class EnrollmentModel extends Model
             ->where('course_id', $course_id)
             ->delete();
     }
+    
+    /**
+     * Enroll user with transaction support
+     * 
+     * @param array $data Enrollment data
+     * @return array Result with success status
+     */
+    public function enrollUserWithTransaction($data)
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+        
+        try {
+            // Enroll the user
+            $enrollmentId = $this->enrollUser($data);
+            
+            if (!$enrollmentId) {
+                $db->transRollback();
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create enrollment record'
+                ];
+            }
+            
+            // Increment course enrolled count
+            $courseModel = new \App\Models\CourseModel();
+            if (!$courseModel->incrementEnrolled($data['course_id'])) {
+                $db->transRollback();
+                return [
+                    'success' => false,
+                    'message' => 'Failed to update course enrollment count'
+                ];
+            }
+            
+            // Get course details for notification
+            $course = $courseModel->find($data['course_id']);
+            
+            // Create notification
+            $notificationModel = new \App\Models\NotificationModel();
+            $message = "You have been enrolled in " . $course['title'];
+            $notificationModel->createNotification($data['user_id'], $message);
+            
+            $db->transComplete();
+            
+            if ($db->transStatus() === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Transaction failed'
+                ];
+            }
+            
+            return [
+                'success' => true,
+                'enrollment_id' => $enrollmentId,
+                'message' => 'Successfully enrolled'
+            ];
+            
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'Enrollment failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'An error occurred during enrollment'
+            ];
+        }
+    }
 }

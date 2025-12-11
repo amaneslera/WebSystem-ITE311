@@ -62,6 +62,7 @@
                                     <select class="form-select <?= $validation && $validation->hasError('role') ? 'is-invalid' : '' ?>" 
                                             id="role" 
                                             name="role" 
+                                            onchange="toggleStudentFields()"
                                             required>
                                         <option value="">Select Role</option>
                                         <option value="student" <?= old('role') == 'student' ? 'selected' : '' ?>>Student</option>
@@ -73,6 +74,48 @@
                                             <?= $validation->getError('role') ?>
                                         </div>
                                     <?php endif; ?>
+                                </div>
+
+                                <!-- Student-specific fields -->
+                                <div id="studentFields" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="student_id" class="form-label">Student ID</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="student_id" 
+                                               name="student_id" 
+                                               value="<?= old('student_id') ?>"
+                                               placeholder="e.g., 2021-00123">
+                                        <div class="form-text">Optional unique student identifier</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="program_id" class="form-label">Program</label>
+                                            <select class="form-select" id="program_id" name="program_id">
+                                                <option value="">Select Program</option>
+                                                <?php 
+                                                $db = \Config\Database::connect();
+                                                $programs = $db->table('course_programs')->where('status', 'active')->get()->getResultArray();
+                                                foreach ($programs as $program): ?>
+                                                    <option value="<?= $program['id'] ?>" <?= old('program_id') == $program['id'] ? 'selected' : '' ?>>
+                                                        <?= esc($program['program_name']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="year_level" class="form-label">Year Level</label>
+                                            <select class="form-select" id="year_level" name="year_level">
+                                                <option value="">Select Year</option>
+                                                <option value="1" <?= old('year_level') == '1' ? 'selected' : '' ?>>1st Year</option>
+                                                <option value="2" <?= old('year_level') == '2' ? 'selected' : '' ?>>2nd Year</option>
+                                                <option value="3" <?= old('year_level') == '3' ? 'selected' : '' ?>>3rd Year</option>
+                                                <option value="4" <?= old('year_level') == '4' ? 'selected' : '' ?>>4th Year</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">
@@ -143,5 +186,22 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleStudentFields() {
+    const role = document.getElementById('role').value;
+    const studentFields = document.getElementById('studentFields');
+    
+    if (role === 'student') {
+        studentFields.style.display = 'block';
+    } else {
+        studentFields.style.display = 'none';
+    }
+}
+
+// Check on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleStudentFields();
+});
+</script>
 </body>
 </html>

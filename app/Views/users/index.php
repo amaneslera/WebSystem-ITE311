@@ -90,11 +90,19 @@
                                     <td><?= date('M d, Y', strtotime($user['updated_at'])) ?></td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <a href="<?= base_url('/users/edit/'.$user['id']) ?>" 
-                                               class="btn btn-outline-primary" 
-                                               title="Edit">
-                                                <i class="bi bi-pencil"></i> Edit
-                                            </a>
+                                            <?php if ($user['id'] != session()->get('user_id')): ?>
+                                                <a href="<?= base_url('/users/edit/'.$user['id']) ?>" 
+                                                   class="btn btn-outline-primary" 
+                                                   title="Edit">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-outline-secondary" 
+                                                        disabled 
+                                                        title="You cannot edit your own account here">
+                                                    <i class="bi bi-pencil"></i> Edit (Self)
+                                                </button>
+                                            <?php endif; ?>
                                             
                                             <?php if ($user['role'] !== 'admin'): ?>
                                                 <?php 

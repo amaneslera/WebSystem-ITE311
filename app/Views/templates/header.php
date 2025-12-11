@@ -98,7 +98,7 @@ $notifications = [];
             
             <!-- Navigation Items -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
+                <ul class="navbar-nav me-auto align-items-center">
                     <?php if (session()->get('isLoggedIn')): ?>
                         
                         <!-- Dashboard Link -->
@@ -108,6 +108,64 @@ $notifications = [];
                                 <i class="bi bi-speedometer2"></i> Dashboard
                             </a>
                         </li>
+
+                        <?php if (session()->get('role') === 'admin'): ?>
+                            <!-- Admin Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('users') ?>">
+                                    <i class="bi bi-people"></i> User Management
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('admin/courses') ?>">
+                                    <i class="bi bi-book"></i> Courses
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('admin/completed-courses') ?>">
+                                    <i class="bi bi-check-circle"></i> Completed Courses
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('announcements') ?>">
+                                    <i class="bi bi-megaphone"></i> Announcements
+                                </a>
+                            </li>
+                        <?php elseif (session()->get('role') === 'teacher'): ?>
+                            <!-- Teacher Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('teacher/courses') ?>">
+                                    <i class="bi bi-book"></i> My Courses
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('teacher/schedule') ?>">
+                                    <i class="bi bi-calendar"></i> Schedule
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('materials') ?>">
+                                    <i class="bi bi-file-earmark-text"></i> Materials
+                                </a>
+                            </li>
+                        <?php else: ?>
+                            <!-- Student Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('dashboard') ?>">
+                                    <i class="bi bi-journal-check"></i> My Courses
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= base_url('materials') ?>">
+                                    <i class="bi bi-file-earmark-text"></i> Materials
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </ul>
+
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <?php if (session()->get('isLoggedIn')): ?>
 
                         <!-- Notifications Dropdown -->
                         <li class="nav-item dropdown notification-badge mx-2">

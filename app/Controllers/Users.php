@@ -91,6 +91,13 @@ class Users extends Controller
             'role' => $this->request->getPost('role')
         ];
 
+        // Add student-specific fields if role is student
+        if ($this->request->getPost('role') === 'student') {
+            $userData['student_id'] = $this->request->getPost('student_id');
+            $userData['program_id'] = $this->request->getPost('program_id') ?: null;
+            $userData['year_level'] = $this->request->getPost('year_level') ?: null;
+        }
+
         if ($this->userModel->createUser($userData)) {
             return redirect()->to(base_url('users'))->with('success', 'User created successfully.');
         } else {
@@ -114,6 +121,11 @@ class Users extends Controller
 
         if (!$user) {
             return redirect()->to(base_url('users'))->with('error', 'User not found.');
+        }
+
+        // Prevent editing yourself
+        if ($user['id'] == session()->get('user_id')) {
+            return redirect()->to(base_url('users'))->with('error', 'You cannot edit your own account. Please use the profile settings.');
         }
 
         $data = [
@@ -141,6 +153,11 @@ class Users extends Controller
 
         if (!$user) {
             return redirect()->to(base_url('users'))->with('error', 'User not found.');
+        }
+
+        // Prevent updating yourself
+        if ($user['id'] == session()->get('user_id')) {
+            return redirect()->to(base_url('users'))->with('error', 'You cannot update your own account through this page.');
         }
 
         // Validation rules
@@ -173,6 +190,13 @@ class Users extends Controller
         // Update password only if provided
         if ($this->request->getPost('password')) {
             $userData['password'] = $this->request->getPost('password'); // Will be hashed in model
+        }
+
+        // Add student-specific fields if role is student
+        if ($this->request->getPost('role') === 'student') {
+            $userData['student_id'] = $this->request->getPost('student_id');
+            $userData['program_id'] = $this->request->getPost('program_id') ?: null;
+            $userData['year_level'] = $this->request->getPost('year_level') ?: null;
         }
 
         if ($this->userModel->updateUser($id, $userData)) {
@@ -265,18 +289,18 @@ class Users extends Controller
             return redirect()->to(base_url('login'))->with('error', 'Access denied. Admin only.');
         }
 
-        // Get user
-        $user = $this->userModel->getUserById($id);
+        // Get user (check if exists, regardless of status)
+        $user = $this->userModel->find($id);
 
         if (!$user) {
-            return redirect()->to(base_url('users'))->with('error', 'User not found.');
+            return redirect()->to(base_url('users/inactive'))->with('error', 'User not found.');
         }
 
         // Perform activation
         if ($this->userModel->activateUser($id)) {
-            return redirect()->to(base_url('users'))->with('success', 'User activated successfully.');
+            return redirect()->to(base_url('users/inactive'))->with('success', 'User activated successfully.');
         } else {
-            return redirect()->to(base_url('users'))->with('error', 'Failed to activate user.');
+            return redirect()->to(base_url('users/inactive'))->with('error', 'Failed to activate user.');
         }
     }
     

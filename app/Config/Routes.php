@@ -20,7 +20,7 @@ $routes->get('/logout', 'Auth::logout');
 
 // Central dashboard route
 $routes->get('/dashboard', 'Auth::dashboard');
-$routes->post('/course/enroll', 'Course::enroll');
+$routes->post('/course/enroll', 'Course::enroll', ['filter' => 'ratelimit']);
 $routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');
 $routes->post('/admin/course/(:num)/upload', 'Materials::upload/$1');
 $routes->get('/teacher/course/(:num)/upload', 'Materials::upload/$1');
@@ -42,12 +42,36 @@ $routes->get('/notifications/mark-all-read', 'Notifications::markAllRead');
 
 $routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
     $routes->get('dashboard', 'Teacher::dashboard');
-    // Add other teacher routes here
+    
+    // Teacher Course Management
+    $routes->get('courses', 'TeacherCourses::index');
+    $routes->get('courses/(:num)/students', 'TeacherCourses::viewStudents/$1');
+    $routes->get('courses/available-students/(:num)', 'TeacherCourses::availableStudents/$1');
+    $routes->post('courses/enroll-student', 'TeacherCourses::enrollStudent');
+    $routes->post('courses/unenroll-student', 'TeacherCourses::unenrollStudent');
+    $routes->post('courses/bulk-enroll', 'TeacherCourses::bulkEnroll');
+    $routes->get('schedule', 'TeacherCourses::schedule');
 });
 
 $routes->group('admin', ['filter' => 'roleauth'], function($routes) {
     $routes->get('dashboard', 'Admin::dashboard');
-    // Add other admin routes here
+    
+    // Admin Course Management
+    $routes->get('courses', 'AdminCourses::index');
+    $routes->get('courses/create', 'AdminCourses::create');
+    $routes->post('courses/create', 'AdminCourses::create');
+    $routes->get('courses/edit/(:num)', 'AdminCourses::update/$1');
+    $routes->post('courses/edit/(:num)', 'AdminCourses::update/$1');
+    $routes->get('courses/available-students/(:num)', 'AdminCourses::availableStudents/$1');
+    $routes->post('courses/enroll-student', 'AdminCourses::enrollStudent');
+    $routes->post('courses/bulk-enroll', 'AdminCourses::bulkEnroll');
+    $routes->post('courses/assign-teacher', 'AdminCourses::assignTeacher');
+    $routes->post('courses/create-schedule', 'AdminCourses::createSchedule');
+    
+    // Completed Courses Management (for transferees)
+    $routes->get('completed-courses', 'AdminCourses::completedCourses');
+    $routes->post('completed-courses/add', 'AdminCourses::addCompletedCourse');
+    $routes->get('completed-courses/delete/(:num)', 'AdminCourses::deleteCompletedCourse/$1');
 });
 
 // User Management Routes (Admin only)

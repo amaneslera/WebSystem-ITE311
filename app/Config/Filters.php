@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'roleauth'      => \App\Filters\RoleAuth::class,
         'security'      => \App\Filters\SecurityHeaders::class,
+        'ratelimit'     => \App\Filters\RateLimiter::class,
     ];
 
     /**
