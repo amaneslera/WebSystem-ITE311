@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Completed Courses']) ?>
 
 <div class="container my-4">
     <main>

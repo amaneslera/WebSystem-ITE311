@@ -24,6 +24,9 @@ class CourseModel extends Model
         'department',
         'semester',
         'units',
+        'room',
+        'schedule_days',
+        'schedule_time',
         'year_level',
         'program_id',
         'prerequisite_course_ids',
@@ -34,7 +37,7 @@ class CourseModel extends Model
     ];
 
     protected bool $allowEmptyInserts = false;
-    protected bool $updateOnlyChanged = true;
+    protected bool $updateOnlyChanged = false;
 
     // Dates
     protected $useTimestamps = true;

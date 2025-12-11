@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Inactive Users']) ?>
 
 <!-- 
     Inactive/Archived Users View

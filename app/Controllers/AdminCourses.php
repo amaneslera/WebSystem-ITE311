@@ -24,30 +24,87 @@ class AdminCourses extends Controller
         }
 
         if ($this->request->getMethod() === 'post') {
+            // Validation rules
+            $rules = [
+                'course_code' => [
+                    'rules' => 'required|min_length[3]|max_length[20]|is_unique[courses.course_code]',
+                    'errors' => [
+                        'required' => 'Course code is required',
+                        'min_length' => 'Course code must be at least 3 characters',
+                        'max_length' => 'Course code cannot exceed 20 characters',
+                        'is_unique' => 'This course code already exists'
+                    ]
+                ],
+                'title' => [
+                    'rules' => 'required|min_length[3]|max_length[255]',
+                    'errors' => [
+                        'required' => 'Course title is required',
+                        'min_length' => 'Course title must be at least 3 characters',
+                        'max_length' => 'Course title cannot exceed 255 characters'
+                    ]
+                ],
+                'units' => [
+                    'rules' => 'permit_empty|integer|greater_than[0]|less_than_equal_to[10]',
+                    'errors' => [
+                        'integer' => 'Units must be a number',
+                        'greater_than' => 'Units must be greater than 0',
+                        'less_than_equal_to' => 'Units cannot exceed 10'
+                    ]
+                ],
+                'max_students' => [
+                    'rules' => 'permit_empty|integer|greater_than[0]',
+                    'errors' => [
+                        'integer' => 'Max students must be a number',
+                        'greater_than' => 'Max students must be greater than 0'
+                    ]
+                ],
+                'lecture_hours' => [
+                    'rules' => 'permit_empty|integer|greater_than_equal_to[0]',
+                    'errors' => [
+                        'integer' => 'Lecture hours must be a number',
+                        'greater_than_equal_to' => 'Lecture hours cannot be negative'
+                    ]
+                ],
+                'lab_hours' => [
+                    'rules' => 'permit_empty|integer|greater_than_equal_to[0]',
+                    'errors' => [
+                        'integer' => 'Lab hours must be a number',
+                        'greater_than_equal_to' => 'Lab hours cannot be negative'
+                    ]
+                ]
+            ];
+
+            if (!$this->validate($rules)) {
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
             $courseModel = new CourseModel();
             
             $data = [
                 'course_code' => $this->request->getPost('course_code'),
                 'title' => $this->request->getPost('title'),
                 'description' => $this->request->getPost('description'),
-                'teacher_id' => $this->request->getPost('teacher_id'),
+                'teacher_id' => $this->request->getPost('teacher_id') ?: null,
                 'department' => $this->request->getPost('department'),
                 'semester' => $this->request->getPost('semester'),
-                'units' => $this->request->getPost('units'),
+                'units' => $this->request->getPost('units') ?: 3,
                 'year_level' => $this->request->getPost('year_level'),
-                'program_id' => $this->request->getPost('program_id'),
-                'max_students' => $this->request->getPost('max_students'),
-                'lecture_hours' => $this->request->getPost('lecture_hours'),
-                'lab_hours' => $this->request->getPost('lab_hours'),
+                'program_id' => $this->request->getPost('program_id') ?: null,
+                'max_students' => $this->request->getPost('max_students') ?: null,
+                'lecture_hours' => $this->request->getPost('lecture_hours') ?: 0,
+                'lab_hours' => $this->request->getPost('lab_hours') ?: 0,
+                'room' => $this->request->getPost('room'),
+                'schedule_days' => $this->request->getPost('schedule_days'),
+                'schedule_time' => $this->request->getPost('schedule_time'),
                 'prerequisite_course_ids' => json_encode($this->request->getPost('prerequisites') ?? []),
                 'status' => 'active',
                 'current_enrolled' => 0
             ];
 
             if ($courseModel->insert($data)) {
-                return redirect()->to('/admin/courses')->with('success', 'Course created successfully');
+                return redirect()->to('/admin/courses')->with('success', 'Course created successfully!');
             } else {
-                return redirect()->back()->with('error', 'Failed to create course')->withInput();
+                return redirect()->back()->with('error', 'Failed to create course. Please try again.')->withInput();
             }
         }
 
@@ -91,29 +148,102 @@ class AdminCourses extends Controller
         }
 
         $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
 
-        if ($this->request->getMethod() === 'post') {
-            $data = [
-                'course_code' => $this->request->getPost('course_code'),
-                'title' => $this->request->getPost('title'),
-                'description' => $this->request->getPost('description'),
-                'teacher_id' => $this->request->getPost('teacher_id'),
-                'department' => $this->request->getPost('department'),
-                'semester' => $this->request->getPost('semester'),
-                'units' => $this->request->getPost('units'),
-                'year_level' => $this->request->getPost('year_level'),
-                'program_id' => $this->request->getPost('program_id'),
-                'max_students' => $this->request->getPost('max_students'),
-                'lecture_hours' => $this->request->getPost('lecture_hours'),
-                'lab_hours' => $this->request->getPost('lab_hours'),
-                'prerequisite_course_ids' => json_encode($this->request->getPost('prerequisites') ?? []),
-                'status' => $this->request->getPost('status')
+        if (!$course) {
+            return redirect()->to('/admin/courses')->with('error', 'Course not found');
+        }
+
+        log_message('info', '=== UPDATE METHOD CALLED === Course ID: ' . $courseId . ', Method: ' . $this->request->getMethod() . ', IsPost: ' . ($this->request->getMethod() === 'post' ? 'YES' : 'NO'));
+
+        if (strtolower($this->request->getMethod()) === 'post') {
+            log_message('info', '=== POST DATA RECEIVED === ' . json_encode($this->request->getPost()));
+            
+            // Validation rules
+            $rules = [
+                'course_code' => [
+                    'rules' => "required|min_length[3]|max_length[20]|is_unique[courses.course_code,id,{$courseId}]",
+                    'errors' => [
+                        'required' => 'Course code is required',
+                        'min_length' => 'Course code must be at least 3 characters',
+                        'max_length' => 'Course code cannot exceed 20 characters',
+                        'is_unique' => 'This course code already exists'
+                    ]
+                ],
+                'title' => [
+                    'rules' => 'required|min_length[3]|max_length[255]',
+                    'errors' => [
+                        'required' => 'Course title is required',
+                        'min_length' => 'Course title must be at least 3 characters',
+                        'max_length' => 'Course title cannot exceed 255 characters'
+                    ]
+                ],
+                'units' => [
+                    'rules' => 'permit_empty|integer|greater_than[0]|less_than_equal_to[10]',
+                    'errors' => [
+                        'integer' => 'Units must be a number',
+                        'greater_than' => 'Units must be greater than 0',
+                        'less_than_equal_to' => 'Units cannot exceed 10'
+                    ]
+                ],
+                'status' => [
+                    'rules' => 'required|in_list[active,inactive]',
+                    'errors' => [
+                        'required' => 'Status is required',
+                        'in_list' => 'Status must be either active or inactive'
+                    ]
+                ]
             ];
 
-            if ($courseModel->update($courseId, $data)) {
-                return redirect()->to('/admin/courses')->with('success', 'Course updated successfully');
-            } else {
-                return redirect()->back()->with('error', 'Failed to update course');
+            if (!$this->validate($rules)) {
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
+            // Prepare data for update
+            $updateData = [];
+            
+            // Only include fields that have values
+            $fields = [
+                'course_code', 'title', 'description', 'teacher_id', 'department', 
+                'semester', 'units', 'year_level', 'program_id', 'max_students', 
+                'lecture_hours', 'lab_hours', 'room', 'schedule_days', 
+                'schedule_time', 'prerequisite_course_ids', 'status'
+            ];
+
+            foreach ($fields as $field) {
+                $value = $this->request->getPost($field);
+                if ($value !== null && $value !== '') {
+                    $updateData[$field] = $value;
+                } elseif (in_array($field, ['teacher_id', 'program_id', 'prerequisite_course_ids', 'max_students'])) {
+                    $updateData[$field] = null;
+                }
+            }
+
+            // Set defaults for numeric fields if empty
+            if (empty($updateData['units'])) {
+                $updateData['units'] = 3;
+            }
+            if (empty($updateData['lecture_hours'])) {
+                $updateData['lecture_hours'] = 0;
+            }
+            if (empty($updateData['lab_hours'])) {
+                $updateData['lab_hours'] = 0;
+            }
+
+            try {
+                $result = $courseModel->update($courseId, $updateData);
+                
+                if ($result !== false) {
+                    return redirect()->to('/admin/courses')->with('success', 'Course updated successfully!');
+                } else {
+                    $errors = $courseModel->errors();
+                    $errorMessage = !empty($errors) ? implode(', ', $errors) : 'Failed to update course. Please check your input.';
+                    log_message('error', 'Course update failed: ' . json_encode($errors));
+                    return redirect()->back()->withInput()->with('error', $errorMessage);
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Course update exception: ' . $e->getMessage());
+                return redirect()->back()->withInput()->with('error', 'An error occurred: ' . $e->getMessage());
             }
         }
 

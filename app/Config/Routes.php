@@ -21,6 +21,9 @@ $routes->get('/logout', 'Auth::logout');
 // Central dashboard route
 $routes->get('/dashboard', 'Auth::dashboard');
 $routes->post('/course/enroll', 'Course::enroll', ['filter' => 'ratelimit']);
+
+// Course View (Single page for all course content)
+$routes->get('/course/view/(:num)', 'CourseView::view/$1', ['filter' => 'roleauth']);
 $routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');
 $routes->post('/admin/course/(:num)/upload', 'Materials::upload/$1');
 $routes->get('/teacher/course/(:num)/upload', 'Materials::upload/$1');
@@ -51,6 +54,29 @@ $routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
     $routes->post('courses/unenroll-student', 'TeacherCourses::unenrollStudent');
     $routes->post('courses/bulk-enroll', 'TeacherCourses::bulkEnroll');
     $routes->get('schedule', 'TeacherCourses::schedule');
+});
+
+// Assignment Routes
+$routes->group('assignments', function($routes) {
+    // Teacher routes
+    $routes->get('index/(:num)', 'Assignments::index/$1', ['filter' => 'roleauth']);
+    $routes->get('create/(:num)', 'Assignments::create/$1', ['filter' => 'roleauth']);
+    $routes->post('store', 'Assignments::store', ['filter' => 'roleauth']);
+    $routes->get('edit/(:num)', 'Assignments::edit/$1', ['filter' => 'roleauth']);
+    $routes->post('update/(:num)', 'Assignments::update/$1', ['filter' => 'roleauth']);
+    $routes->get('delete/(:num)', 'Assignments::delete/$1', ['filter' => 'roleauth']);
+    $routes->get('submissions/(:num)', 'Assignments::submissions/$1', ['filter' => 'roleauth']);
+    $routes->get('grade/(:num)', 'Assignments::grade/$1', ['filter' => 'roleauth']);
+    $routes->post('grade/(:num)', 'Assignments::storeGrade/$1', ['filter' => 'roleauth']);
+    
+    // Student routes
+    $routes->get('view/(:num)', 'Assignments::view/$1', ['filter' => 'roleauth']);
+    $routes->post('submit/(:num)', 'Assignments::submit/$1', ['filter' => 'roleauth']);
+    $routes->get('my-submissions', 'Assignments::mySubmissions', ['filter' => 'roleauth']);
+    
+    // Shared routes
+    $routes->get('download/(:num)', 'Assignments::download/$1', ['filter' => 'roleauth']);
+    $routes->get('download-attachment/(:num)', 'Assignments::downloadAttachment/$1', ['filter' => 'roleauth']);
 });
 
 $routes->group('admin', ['filter' => 'roleauth'], function($routes) {

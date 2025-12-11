@@ -211,7 +211,10 @@ class Auth extends BaseController
                     }
                 }
 
-                $data['pending_assignments'] = [];
+                // Get pending assignments (with ungraded submissions)
+                $assignmentModel = new \App\Models\AssignmentModel();
+                $data['pending_assignments'] = $assignmentModel->getPendingAssignments($userId);
+                
                 $data['notifications'] = [];
                 break;
 
@@ -219,7 +222,10 @@ class Auth extends BaseController
                 $data['total_courses'] = 0;
                 $data['enrolled_courses'] = [];
                 $data['recent_grades'] = [];
-                $data['upcoming_assignments'] = [];
+                
+                // Get upcoming assignments for student
+                $assignmentModel = new \App\Models\AssignmentModel();
+                $data['upcoming_assignments'] = $assignmentModel->getUpcomingAssignmentsForStudent($userId);
                 
                 // Get student info for filtering
                 $student = $this->db->table('users')->where('id', $userId)->get()->getRowArray();

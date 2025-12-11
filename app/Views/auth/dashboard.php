@@ -1,31 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= ucfirst(session()->get('role')) ?> Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        .admin-bg { background-color: #212529; color: white; }
-        .teacher-bg { background-color: #0d6efd; color: white; }
-        .student-bg { background-color: #198754; color: white; }
-        
-        .stat-card {
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        .icon-large {
-            font-size: 2.5rem;
-        }
-    </style>
-</head>
-<body>
-     <?= $this->include('templates/header') ?> 
+<?= view('templates/header', ['title' => ucfirst(session()->get('role')) . ' Dashboard']) ?>
+
+<style>
+    .admin-bg { background-color: #212529; color: white; }
+    .teacher-bg { background-color: #0d6efd; color: white; }
+    .student-bg { background-color: #198754; color: white; }
+    
+    .stat-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .icon-large {
+        font-size: 2.5rem;
+    }
+</style> 
 
     <div class="container-fluid mt-4">
         <h2 class="mb-4">Welcome, <?= session()->get('name') ?>!</h2>
@@ -267,10 +258,20 @@
                                                 <div class="col-md-8 mb-2 mb-md-0">
                                                     <h5 class="mb-1"><?= $course['title'] ?></h5>
                                                     <p class="mb-1 text-muted"><?= $course['description'] ?? 'No description available' ?></p>
-                                                    <small class="text-muted">
+                                                    <small class="text-muted d-block">
                                                         <i class="bi bi-people"></i> 
                                                         <?= isset($course['students_count']) ? $course['students_count'] . ' students enrolled' : 'No students' ?>
                                                     </small>
+                                                    <?php if (!empty($course['room']) || !empty($course['schedule_days']) || !empty($course['schedule_time'])): ?>
+                                                        <small class="text-muted d-block">
+                                                            <?php if (!empty($course['room'])): ?>
+                                                                <i class="bi bi-geo-alt"></i> <?= esc($course['room']) ?>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($course['schedule_days']) && !empty($course['schedule_time'])): ?>
+                                                                • <i class="bi bi-clock"></i> <?= esc($course['schedule_days']) ?> <?= esc($course['schedule_time']) ?>
+                                                            <?php endif; ?>
+                                                        </small>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <div class="col-md-4 text-md-end">
                                                     <div class="btn-group-vertical btn-group-sm w-100" role="group">
@@ -284,8 +285,12 @@
                                                             <i class="bi bi-people"></i> View Students
                                                         </a>
                                                         <a href="<?= base_url('teacher/course/' . $course['id'] . '/upload') ?>" 
-                                                           class="btn btn-primary">
+                                                           class="btn btn-primary mb-1">
                                                             <i class="bi bi-upload"></i> Upload Materials
+                                                        </a>
+                                                        <a href="<?= base_url('assignments/index/' . $course['id']) ?>" 
+                                                           class="btn btn-warning">
+                                                            <i class="bi bi-file-earmark-text"></i> Assignments
                                                         </a>
                                                     </div>
                                                 </div>
@@ -327,11 +332,11 @@
                                                 <td><?= $assignment['course_title'] ?></td>
                                                 <td><?= date('M d, Y', strtotime($assignment['due_date'])) ?></td>
                                                 <td>
-                                                    <span class="badge bg-primary rounded-pill"><?= $assignment['submission_count'] ?></span>
+                                                    <span class="badge bg-primary rounded-pill"><?= $assignment['pending_count'] ?></span>
                                                 </td>
                                                 <td>
-                                                    <a href="<?= base_url('/assignments/grade/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-primary">
-                                                        Grade
+                                                    <a href="<?= base_url('/assignments/submissions/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-primary">
+                                                        View Submissions
                                                     </a>
                                                 </td>
                                             </tr>
@@ -607,7 +612,7 @@
                                                 <td><?= $assignment['course_title'] ?></td>
                                                 <td><?= date('M d, Y', strtotime($assignment['due_date'])) ?></td>
                                                 <td>
-                                                    <?php if ($assignment['submitted']): ?>
+                                                    <?php if (isset($assignment['submission_status']) && $assignment['submission_status']): ?>
                                                         <span class="badge bg-success">Submitted</span>
                                                     <?php else: ?>
                                                         <?php if (strtotime($assignment['due_date']) < time()): ?>
@@ -618,10 +623,10 @@
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?php if (!$assignment['submitted']): ?>
-                                                        <a href="<?= base_url('/assignment/submit/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-success">Submit</a>
+                                                    <?php if (!isset($assignment['submission_status']) || !$assignment['submission_status']): ?>
+                                                        <a href="<?= base_url('assignments/view/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-success">Submit</a>
                                                     <?php else: ?>
-                                                        <a href="<?= base_url('/assignment/view/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-primary">View</a>
+                                                        <a href="<?= base_url('assignments/view/' . $assignment['id']) ?>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>

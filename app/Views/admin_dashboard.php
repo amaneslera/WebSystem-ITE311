@@ -1,5 +1,5 @@
 
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Admin Dashboard']) ?>
 <!DOCTYPE html>
 <html>
 <head>

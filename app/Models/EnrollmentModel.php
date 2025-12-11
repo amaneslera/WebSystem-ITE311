@@ -74,6 +74,19 @@ class EnrollmentModel extends Model
             
         return ($result > 0);
     }
+
+    /**
+     * Alias for isAlreadyEnrolled
+     * Check if a user is enrolled in a specific course
+     * 
+     * @param int $user_id The user ID
+     * @param int $course_id The course ID
+     * @return bool True if enrolled, false otherwise
+     */
+    public function isEnrolled($user_id, $course_id)
+    {
+        return $this->isAlreadyEnrolled($user_id, $course_id);
+    }
     
     /**
      * Get all students enrolled in a specific course

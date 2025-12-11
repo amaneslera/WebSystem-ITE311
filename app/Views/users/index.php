@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Manage Users']) ?>
 
 <!-- 
     User Management View - Active Users

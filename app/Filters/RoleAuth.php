@@ -39,6 +39,16 @@ class RoleAuth implements FilterInterface
             return;
         }
 
+        // Allow course view for all logged-in users
+        if (strpos($uri, 'course/view/') !== false) {
+            return;
+        }
+
+        // Allow assignments access for teachers, students, and admins
+        if (($role === 'teacher' || $role === 'student' || $role === 'admin') && strpos($uri, 'assignments/') !== false) {
+            return;
+        }
+
         // Teacher: allow /teacher/*
         if ($role === 'teacher' && (strpos($uri, 'teacher/') !== false || $uri === 'teacher')) {
             return;

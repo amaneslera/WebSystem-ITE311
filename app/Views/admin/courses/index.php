@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Manage Courses']) ?>
 
 <div class="container my-4">
     <main>
@@ -74,20 +74,33 @@
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-primary btn-view-details" 
+                                            <div class="d-flex gap-1">
+                                                <button type="button" class="btn btn-outline-primary btn-sm btn-view-details" 
                                                         data-course='<?= json_encode($course) ?>'
-                                                        data-bs-toggle="modal" data-bs-target="#courseDetailsModal">
+                                                        data-bs-toggle="modal" data-bs-target="#courseDetailsModal"
+                                                        title="View Details">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-warning btn-assign-teacher" 
+                                                <a href="<?= base_url('assignments/index/' . $course['id']) ?>" 
+                                                   class="btn btn-outline-success btn-sm" 
+                                                   title="Manage Assignments">
+                                                    <i class="bi bi-file-earmark-text"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-warning btn-sm btn-assign-teacher" 
                                                         data-course-id="<?= $course['id'] ?>"
-                                                        data-course-title="<?= esc($course['title']) ?>">
+                                                        data-course-title="<?= esc($course['title']) ?>"
+                                                        title="Assign Teacher">
                                                     <i class="bi bi-person-plus"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-danger btn-toggle-status" 
+                                                <a href="<?= base_url('admin/courses/edit/' . $course['id']) ?>" 
+                                                   class="btn btn-outline-info btn-sm"
+                                                   title="Edit Course">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger btn-sm btn-toggle-status" 
                                                         data-course-id="<?= $course['id'] ?>"
-                                                        data-current-status="<?= $course['status'] ?>">
+                                                        data-current-status="<?= $course['status'] ?>"
+                                                        title="Toggle Status">
                                                     <i class="bi bi-power"></i>
                                                 </button>
                                             </div>
@@ -115,6 +128,8 @@
             </div>
         </div>
     </div>
+    </main>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -166,9 +181,6 @@
             });
         });
     </script>
-    </main>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

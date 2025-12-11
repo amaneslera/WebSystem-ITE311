@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Edit User']) ?>
 
 <div class="container my-4">
         <main>

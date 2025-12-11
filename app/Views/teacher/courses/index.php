@@ -1,24 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Courses - Teacher</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        .course-card {
-            transition: all 0.3s;
-            border-left: 4px solid #0d6efd;
-        }
-        .course-card:hover {
-            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-            transform: translateY(-3px);
-        }
-    </style>
-</head>
-<body>
-    <?= $this->include('templates/header') ?>
+<?= view('templates/header', ['title' => 'My Courses - Teacher']) ?>
+
+<style>
+    .course-card {
+        transition: all 0.3s;
+        border-left: 4px solid #0d6efd;
+    }
+    .course-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        transform: translateY(-3px);
+    }
+</style>
 
     <div class="container mt-4">
         <!-- Page Header -->
@@ -142,14 +133,27 @@
                                     <small class="text-muted">
                                         <i class="bi bi-building"></i> <?= esc($course['department']) ?>
                                     </small>
+                                    <?php if (!empty($course['room'])): ?>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="bi bi-geo-alt"></i> <?= esc($course['room']) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                    <?php if (!empty($course['schedule_days']) && !empty($course['schedule_time'])): ?>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> <?= esc($course['schedule_days']) ?> <?= esc($course['schedule_time']) ?>
+                                        </small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="card-footer bg-light">
                                 <div class="d-grid gap-2">
                                     <a href="<?= base_url('teacher/courses/' . $course['id'] . '/students') ?>" 
-                                       class="btn btn-primary btn-sm">
+                                       class="btn btn-info btn-sm">
                                         <i class="bi bi-people"></i> View Students (<?= $course['enrolled_count'] ?? 0 ?>)
                                     </a>
+                                    
                                     <div class="btn-group" role="group">
                                         <button class="btn btn-success btn-sm teacher-enroll-btn" 
                                                 data-course-id="<?= $course['id'] ?>"
@@ -157,8 +161,12 @@
                                             <i class="bi bi-person-plus"></i> Enroll
                                         </button>
                                         <a href="<?= base_url('teacher/course/' . $course['id'] . '/upload') ?>" 
-                                           class="btn btn-info btn-sm">
+                                           class="btn btn-secondary btn-sm">
                                             <i class="bi bi-upload"></i> Materials
+                                        </a>
+                                        <a href="<?= base_url('assignments/index/' . $course['id']) ?>" 
+                                           class="btn btn-warning btn-sm">
+                                            <i class="bi bi-file-earmark-text"></i> Assignments
                                         </a>
                                     </div>
                                 </div>

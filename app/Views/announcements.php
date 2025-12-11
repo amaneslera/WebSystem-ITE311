@@ -1,4 +1,4 @@
-<?= view('templates/header') ?>
+<?= view('templates/header', ['title' => 'Announcements']) ?>
 <!DOCTYPE html>
 <html>
 <head>

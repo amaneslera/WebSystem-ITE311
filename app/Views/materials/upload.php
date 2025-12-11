@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Upload Course Material</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+<?= view('templates/header', ['title' => 'Upload Course Material']) ?>
+
 <div class="container mt-5">
     <h3 class="mb-4">Upload Material for Course #<?= esc($course_id) ?></h3>
     
