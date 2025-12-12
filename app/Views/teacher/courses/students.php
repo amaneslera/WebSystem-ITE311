@@ -247,8 +247,12 @@
                         alert('Error: ' + response.message);
                     }
                 })
-                .fail(function() {
-                    alert('An error occurred. Please try again.');
+                .fail(function(xhr) {
+                    let errorMessage = 'An error occurred. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    alert(errorMessage);
                 });
         });
 

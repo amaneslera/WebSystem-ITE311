@@ -23,6 +23,25 @@
         
         <?php if (session()->get('role') === 'admin'): ?>
             <!-- Admin Dashboard Content -->
+            
+            <!-- Enrollment Requests Alert -->
+            <?php
+            $invitationModel = new \App\Models\EnrollmentInvitationModel();
+            $allPendingRequests = $invitationModel->getAllPendingRequests();
+            $adminRequestCount = count($allPendingRequests);
+            ?>
+            <?php if ($adminRequestCount > 0): ?>
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-person-raised-hand"></i> Enrollment Requests!</h5>
+                    <p class="mb-2">There are <strong><?= $adminRequestCount ?></strong> pending enrollment request<?= $adminRequestCount > 1 ? 's' : '' ?> across all courses.</p>
+                    <hr>
+                    <a href="<?= base_url('enrollment/pending-requests') ?>" class="btn btn-info btn-sm">
+                        <i class="bi bi-check-circle"></i> Review All Requests
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            
             <div class="row">
                 <div class="col-md-4 mb-4">
                     <div class="card stat-card text-white bg-primary">
@@ -129,7 +148,10 @@
                         <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#enrollStudentModal">
                             <i class="bi bi-person-plus"></i> Enroll Student
                         </button>
-                        <a href="<?= base_url('/admin/courses') ?>" class="btn btn-sm btn-primary">View All</a>
+                        <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#adminBulkEnrollModal">
+                            <i class="bi bi-people-fill"></i> Bulk Enroll
+                        </button>
+                        <a href="<?= base_url('/admin/courses') ?>" class="btn btn-sm btn-secondary">View All</a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -187,6 +209,24 @@
             </div>
         <?php elseif (session()->get('role') === 'teacher'): ?>
             <!-- Teacher Dashboard Content -->
+            
+            <!-- Enrollment Requests Alert -->
+            <?php
+            $invitationModel = new \App\Models\EnrollmentInvitationModel();
+            $pendingRequests = $invitationModel->getPendingRequestsForTeacher(session()->get('user_id'));
+            $requestCount = count($pendingRequests);
+            ?>
+            <?php if ($requestCount > 0): ?>
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-person-raised-hand"></i> Enrollment Requests!</h5>
+                    <p class="mb-2">You have <strong><?= $requestCount ?></strong> pending enrollment request<?= $requestCount > 1 ? 's' : '' ?> for your courses.</p>
+                    <hr>
+                    <a href="<?= base_url('enrollment/pending-requests') ?>" class="btn btn-info btn-sm">
+                        <i class="bi bi-check-circle"></i> Review Requests
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
             
             <!-- Stats Cards Row -->
             <div class="row mb-4">
@@ -461,8 +501,54 @@
             </div>
         <?php elseif (session()->get('role') === 'student'): ?>
             <!-- Student Dashboard Content -->
+            <?php
+            // Check for pending invitations
+            try {
+                $invitationModel = new \App\Models\EnrollmentInvitationModel();
+                $userId = session()->get('user_id') ?? session()->get('id');
+                $pendingInvitations = $invitationModel->getPendingInvitationsForStudent($userId);
+                $invitationCount = count($pendingInvitations);
+            } catch (\Exception $e) {
+                $invitationCount = 0;
+                log_message('error', 'Dashboard invitation check error: ' . $e->getMessage());
+            }
+            ?>
+            
+            <!-- Course Invitation Alert - Only shows when there are pending invitations -->
+            <?php if ($invitationCount > 0): ?>
+                <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+                    <i class="bi bi-envelope-paper-fill me-2"></i>
+                    <strong>You have been invited!</strong> 
+                    You have <?= $invitationCount ?> pending course invitation<?= $invitationCount > 1 ? 's' : '' ?>.
+                    <a href="<?= base_url('enrollment/my-invitations') ?>" class="alert-link fw-bold">Click here to view and respond</a>.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
             <div class="row">
                 <div class="col-md-4">
+                    <!-- Course Invitations Card -->
+                    <div class="card mb-4 stat-card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">Course Invitations</h5>
+                                    <h2 class="display-4"><?= $invitationCount ?? 0 ?></h2>
+                                </div>
+                                <i class="bi bi-envelope-paper-fill icon-large"></i>
+                            </div>
+                            <p class="card-text">
+                                <?php if ($invitationCount > 0): ?>
+                                    <a href="<?= base_url('enrollment/my-invitations') ?>" class="text-white text-decoration-underline fw-bold">
+                                        <i class="bi bi-arrow-right-circle-fill me-1"></i>View & Respond to Invitations
+                                    </a>
+                                <?php else: ?>
+                                    No pending invitations
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                    
                     <div class="card mb-4 stat-card text-white bg-success">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -897,8 +983,57 @@ $(document).ready(function() {
             } else {
                 alert('Error: ' + data.message);
             }
-        }).fail(function() {
-            alert('An error occurred. Please try again.');
+        }).fail(function(xhr) {
+            let errorMessage = 'An error occurred. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            alert(errorMessage);
+        });
+    });
+
+    // Admin: Bulk Enroll Students Form Submit
+    $('#adminBulkEnrollForm').submit(function(e) {
+        e.preventDefault();
+        
+        const selectedStudents = $('#adminBulkStudentSelect').val();
+        const courseId = $('#adminBulkCourseSelect').val();
+        
+        if (!selectedStudents || selectedStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        if (!courseId) {
+            alert('Please select a course');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to enroll ${selectedStudents.length} student(s)?`)) {
+            return;
+        }
+        
+        const $submitBtn = $('#adminBulkEnrollForm button[type="submit"]');
+        $submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Enrolling...');
+        
+        $.post('<?= base_url('admin/courses/bulk-enroll') ?>', {
+            student_ids: selectedStudents,
+            course_id: courseId,
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                alert(`Successfully enrolled ${data.enrolled_count} student(s)!\n${data.message}`);
+                $('#adminBulkEnrollModal').modal('hide');
+                $('#adminBulkEnrollForm')[0].reset();
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }).fail(function(xhr) {
+            const errorMsg = xhr.responseJSON?.message || 'An error occurred. Please try again.';
+            alert('Error: ' + errorMsg);
+        }).always(function() {
+            $submitBtn.prop('disabled', false).html('<i class="bi bi-people-fill"></i> Enroll Selected Students');
         });
     });
 
@@ -934,8 +1069,12 @@ $(document).ready(function() {
             } else {
                 alert('Error: ' + data.message);
             }
-        }).fail(function() {
-            alert('An error occurred. Please try again.');
+        }).fail(function(xhr) {
+            let errorMessage = 'An error occurred. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            alert(errorMessage);
         });
     });
 });
@@ -1096,6 +1235,67 @@ $(document).ready(function() {
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success">Enroll Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Admin: Bulk Enroll Students Modal -->
+<div class="modal fade" id="adminBulkEnrollModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-people-fill"></i> Bulk Enroll Students to Course</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="adminBulkEnrollForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Course <span class="text-danger">*</span></label>
+                        <select id="adminBulkCourseSelect" class="form-select" required>
+                            <option value="">Choose course...</option>
+                            <?php 
+                            if (session()->get('role') === 'admin' && !empty($all_courses)) {
+                                foreach ($all_courses as $course): 
+                            ?>
+                                <option value="<?= $course['id'] ?>"><?= $course['title'] ?> (<?= $course['course_code'] ?>)</option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Students (Hold Ctrl/Cmd to select multiple) <span class="text-danger">*</span></label>
+                        <select class="form-select" id="adminBulkStudentSelect" multiple size="10" required>
+                            <?php 
+                            if (session()->get('role') === 'admin') {
+                                $userModel = new \App\Models\UserModel();
+                                $students = $userModel->where('role', 'student')->where('status', 'active')->findAll();
+                                foreach ($students as $student): 
+                            ?>
+                                <option value="<?= $student['id'] ?>"><?= $student['name'] ?> - <?= $student['email'] ?> <?= $student['student_id'] ? '(' . $student['student_id'] . ')' : '' ?></option>
+                            <?php 
+                                endforeach;
+                            }
+                            ?>
+                        </select>
+                        <small class="form-text text-muted">
+                            You can select multiple students at once. Click first student, hold Ctrl/Cmd, click others.
+                        </small>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Bulk Enrollment</strong><br>
+                        This will enroll all selected students at once. Admin can override capacity limits.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-people-fill"></i> Enroll Selected Students
+                    </button>
                 </div>
             </form>
         </div>

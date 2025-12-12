@@ -59,8 +59,13 @@ class RoleAuth implements FilterInterface
             return;
         }
 
-        // Student: allow /student/* and /announcements
-        if ($role === 'student' && (strpos($uri, 'student/') !== false || $uri === 'student' || $uri === 'announcements')) {
+        // Student: allow /student/*, /announcements, and /enrollment/*
+        if ($role === 'student' && (strpos($uri, 'student/') !== false || $uri === 'student' || $uri === 'announcements' || strpos($uri, 'enrollment/') !== false)) {
+            return;
+        }
+
+        // Teacher/Admin: allow /enrollment/*
+        if (($role === 'teacher' || $role === 'admin') && strpos($uri, 'enrollment/') !== false) {
             return;
         }
 

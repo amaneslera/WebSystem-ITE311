@@ -5,7 +5,9 @@ namespace App\Controllers;
 use App\Models\CourseModel;
 use App\Models\UserModel;
 use App\Models\EnrollmentModel;
+use App\Models\EnrollmentInvitationModel;
 use App\Models\ScheduleModel;
+use App\Helpers\NotificationHelper;
 use CodeIgniter\Controller;
 
 class TeacherCourses extends Controller
@@ -97,13 +99,14 @@ class TeacherCourses extends Controller
 
         $courseModel = new CourseModel();
         $enrollmentModel = new EnrollmentModel();
+        $invitationModel = new EnrollmentInvitationModel();
 
         // Verify teacher owns this course
         $course = $courseModel->find($courseId);
         if (!$course || $course['teacher_id'] != $teacherId) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'You can only enroll students in your assigned courses'
+                'message' => 'You can only send invitations for your assigned courses'
             ])->setStatusCode(403);
         }
 
@@ -112,6 +115,14 @@ class TeacherCourses extends Controller
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Student is already enrolled in this course'
+            ])->setStatusCode(409);
+        }
+
+        // Check if there's already a pending invitation or request
+        if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'There is already a pending invitation or request for this student and course'
             ])->setStatusCode(409);
         }
 
@@ -126,17 +137,33 @@ class TeacherCourses extends Controller
         // Check prerequisites (teacher can see warning but can override)
         $hasPrereq = $courseModel->hasPrerequisites($courseId, $studentId);
         
-        // Enroll with transaction
-        $result = $enrollmentModel->enrollUserWithTransaction([
-            'user_id' => $studentId,
-            'course_id' => $courseId,
-            'enrollment_date' => date('Y-m-d H:i:s')
-        ]);
+        // Create invitation instead of direct enrollment
+        $message = "You have been invited to enroll in this course by your teacher.";
+        $result = $invitationModel->createInvitation($studentId, $courseId, $teacherId, $message);
 
         if ($result['success']) {
-            $message = 'Student enrolled successfully';
+            // Notify student and admins about the invitation
+            try {
+                $notificationHelper = new NotificationHelper();
+                $userModel = new UserModel();
+                $student = $userModel->find($studentId);
+                $studentName = $student ? $student['name'] : 'Student';
+                $courseName = $course['title'];
+                
+                // Notify student
+                $studentMessage = "You have been invited to enroll in: {$courseName}";
+                $notificationHelper->notifyStudent($studentId, $studentMessage);
+                
+                // Notify admins
+                $adminMessage = "Teacher sent invitation: {$studentName} → {$courseName}";
+                $notificationHelper->notifyAllAdmins($adminMessage);
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to send invitation notification: ' . $e->getMessage());
+            }
+            
+            $message = 'Invitation sent successfully! Student will be notified.';
             if (!$hasPrereq) {
-                $message .= ' (Warning: Prerequisites not met)';
+                $message .= ' (Note: Student has not met prerequisites)';
             }
 
             return $this->response->setJSON([

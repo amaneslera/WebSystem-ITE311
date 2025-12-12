@@ -6,6 +6,7 @@ use App\Models\AssignmentModel;
 use App\Models\AssignmentSubmissionModel;
 use App\Models\CourseModel;
 use App\Models\EnrollmentModel;
+use App\Helpers\NotificationHelper;
 
 class Assignments extends BaseController
 {
@@ -154,6 +155,18 @@ class Assignments extends BaseController
         }
 
         if ($this->assignmentModel->createAssignment($data)) {
+            // Notify all students enrolled in this course
+            try {
+                $notificationHelper = new NotificationHelper();
+                $courseName = $course['title'];
+                $assignmentTitle = $data['title'];
+                $dueDate = !empty($data['due_date']) ? date('M d, Y', strtotime($data['due_date'])) : 'No due date';
+                $message = "New assignment posted in {$courseName}: {$assignmentTitle} - Due: {$dueDate}";
+                $notificationHelper->notifyStudentsInCourse($course_id, $message);
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to send assignment notifications: ' . $e->getMessage());
+            }
+            
             return redirect()->to('/assignments/index/' . $course_id)->with('success', 'Assignment created successfully');
         }
 
@@ -368,6 +381,16 @@ class Assignments extends BaseController
         $feedback = $this->request->getPost('feedback');
 
         if ($this->submissionModel->gradeSubmission($submission_id, $grade, $feedback, session()->get('user_id'))) {
+            // Notify the student about their grade
+            try {
+                $notificationHelper = new NotificationHelper();
+                $assignmentTitle = $assignment['title'];
+                $message = "Your submission for {$assignmentTitle} has been graded: {$grade}/{$assignment['max_points']} points";
+                $notificationHelper->notifyStudent($submission['user_id'], $message);
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to send grade notification: ' . $e->getMessage());
+            }
+            
             return redirect()->to('/assignments/submissions/' . $assignment['id'])->with('success', 'Submission graded successfully');
         }
 
@@ -474,6 +497,20 @@ class Assignments extends BaseController
             ];
 
             if ($this->submissionModel->submitAssignment($data)) {
+                // Notify the teacher of this assignment
+                try {
+                    $notificationHelper = new NotificationHelper();
+                    $studentName = session()->get('name');
+                    $assignmentTitle = $assignment['title'];
+                    $courseModel = new \App\Models\CourseModel();
+                    $course = $courseModel->find($assignment['course_id']);
+                    $courseName = $course ? $course['title'] : 'Unknown Course';
+                    $message = "{$studentName} submitted {$assignmentTitle} for {$courseName}";
+                    $notificationHelper->notifyTeacher($assignment['teacher_id'], $message);
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to send submission notification: ' . $e->getMessage());
+                }
+                
                 return redirect()->to('/assignments/view/' . $assignment_id)->with('success', 'Assignment submitted successfully');
             }
         }

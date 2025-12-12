@@ -5,11 +5,13 @@ namespace App\Controllers;
 use App\Models\CourseModel;
 use App\Models\UserModel;
 use App\Models\EnrollmentModel;
+use App\Models\EnrollmentInvitationModel;
 use App\Models\DepartmentModel;
 use App\Models\ProgramModel;
 use App\Models\RoomModel;
 use App\Models\ScheduleModel;
 use App\Models\AcademicYearModel;
+use App\Helpers\NotificationHelper;
 use CodeIgniter\Controller;
 
 class AdminCourses extends Controller
@@ -291,41 +293,81 @@ class AdminCourses extends Controller
         $studentId = $this->request->getPost('student_id');
         $courseId = $this->request->getPost('course_id');
 
-        $enrollmentModel = new EnrollmentModel();
-        $courseModel = new CourseModel();
+        try {
+            $enrollmentModel = new EnrollmentModel();
+            $invitationModel = new EnrollmentInvitationModel();
+            $courseModel = new CourseModel();
 
-        // Check if already enrolled
-        if ($enrollmentModel->isAlreadyEnrolled($studentId, $courseId)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Student is already enrolled in this course'
-            ])->setStatusCode(409);
-        }
+            // Check if already enrolled
+            if ($enrollmentModel->isAlreadyEnrolled($studentId, $courseId)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Student is already enrolled in this course'
+                ])->setStatusCode(409);
+            }
 
-        // Admin can override capacity, but still check
-        if (!$courseModel->hasAvailableSeats($courseId)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Warning: Course is at full capacity'
-            ])->setStatusCode(409);
-        }
+            // Check if there's already a pending invitation or request
+            if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'There is already a pending invitation or request for this student and course'
+                ])->setStatusCode(409);
+            }
 
-        // Enroll with transaction (admin override - skip prerequisite/schedule checks)
-        $result = $enrollmentModel->enrollUserWithTransaction([
-            'user_id' => $studentId,
-            'course_id' => $courseId,
-            'enrollment_date' => date('Y-m-d H:i:s')
-        ]);
+            // Admin can override capacity, but still check
+            if (!$courseModel->hasAvailableSeats($courseId)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Warning: Course is at full capacity'
+                ])->setStatusCode(409);
+            }
+
+            // Create invitation instead of direct enrollment
+            $adminId = session()->get('user_id');
+            $message = "You have been invited to enroll in this course by an administrator.";
+            $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
 
         if ($result['success']) {
+            // Notify student and teacher about the invitation
+            try {
+                $notificationHelper = new NotificationHelper();
+                $userModel = new UserModel();
+                $student = $userModel->find($studentId);
+                $course = $courseModel->find($courseId);
+                
+                if ($student && $course) {
+                    $studentName = $student['name'];
+                    $courseName = $course['course_name'] ?? $course['title'] ?? 'Unknown Course';
+                    
+                    // Notify the student
+                    $studentMessage = "You have been invited to enroll in: {$courseName}";
+                    $notificationHelper->notifyStudent($studentId, $studentMessage);
+                    
+                    // Notify the teacher
+                    if (isset($course['teacher_id']) && $course['teacher_id']) {
+                        $teacherMessage = "Admin sent invitation: {$studentName} → {$courseName}";
+                        $notificationHelper->notifyTeacher($course['teacher_id'], $teacherMessage);
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to send admin invitation notification: ' . $e->getMessage());
+            }
+            
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Student enrolled successfully by admin'
+                'message' => 'Invitation sent successfully! Student will be notified.'
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => $result['message']
+            ])->setStatusCode(500);
+        }
+        } catch (\Exception $e) {
+            log_message('error', 'Admin enrollment error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
     }
@@ -418,6 +460,7 @@ class AdminCourses extends Controller
 
         $courseModel = new CourseModel();
         $enrollmentModel = new EnrollmentModel();
+        $invitationModel = new EnrollmentInvitationModel();
         $userModel = new UserModel();
         
         $course = $courseModel->find($courseId);
@@ -428,9 +471,10 @@ class AdminCourses extends Controller
             ])->setStatusCode(404);
         }
 
-        $enrolled = 0;
+        $invited = 0;
         $failed = 0;
         $errors = [];
+        $adminId = session()->get('user_id');
 
         foreach ($studentIds as $studentId) {
             // Check if already enrolled
@@ -441,15 +485,28 @@ class AdminCourses extends Controller
                 continue;
             }
 
-            // Admin can override capacity - just enroll directly
-            $result = $enrollmentModel->enrollUserWithTransaction([
-                'user_id' => $studentId,
-                'course_id' => $courseId,
-                'notification_message' => 'You have been enrolled in ' . $course['title'] . ' by admin'
-            ]);
+            // Check if there's already a pending invitation or request
+            if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
+                $user = $userModel->find($studentId);
+                $errors[] = ($user['name'] ?? 'Student') . ' already has a pending invitation';
+                $failed++;
+                continue;
+            }
+
+            // Send invitation instead of direct enrollment
+            $message = "You have been invited to enroll in this course by an administrator (bulk enrollment).";
+            $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
 
             if ($result['success']) {
-                $enrolled++;
+                $invited++;
+                
+                // Notify the student
+                try {
+                    $notificationHelper = new NotificationHelper();
+                    $notificationHelper->notifyStudent($studentId, "You have been invited to enroll in: {$course['title']}");
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to send bulk invitation notification: ' . $e->getMessage());
+                }
             } else {
                 $failed++;
                 $user = $userModel->find($studentId);
@@ -457,7 +514,7 @@ class AdminCourses extends Controller
             }
         }
 
-        $message = "Enrolled $enrolled student(s).";
+        $message = "Sent $invited invitation(s).";
         if ($failed > 0) {
             $message .= " $failed failed.";
             if (!empty($errors)) {
@@ -466,8 +523,8 @@ class AdminCourses extends Controller
         }
 
         return $this->response->setJSON([
-            'success' => $enrolled > 0,
-            'enrolled_count' => $enrolled,
+            'success' => $invited > 0,
+            'invited_count' => $invited,
             'failed_count' => $failed,
             'message' => $message
         ]);

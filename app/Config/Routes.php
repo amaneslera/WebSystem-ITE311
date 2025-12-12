@@ -43,6 +43,17 @@ $routes->get('/notifications/all', 'Notifications::index');
 $routes->get('/notifications/mark-read/(:num)', 'Notifications::markRead/$1');
 $routes->get('/notifications/mark-all-read', 'Notifications::markAllRead');
 
+// Enrollment Invitation Routes
+// Student invitation routes
+$routes->get('/enrollment/my-invitations', 'EnrollmentInvitations::myInvitations', ['filter' => 'roleauth']);
+$routes->post('/enrollment/accept-invitation/(:num)', 'EnrollmentInvitations::acceptInvitation/$1', ['filter' => 'roleauth']);
+$routes->post('/enrollment/decline-invitation/(:num)', 'EnrollmentInvitations::declineInvitation/$1', ['filter' => 'roleauth']);
+
+// Teacher/Admin request routes
+$routes->get('/enrollment/pending-requests', 'EnrollmentInvitations::pendingRequests', ['filter' => 'roleauth']);
+$routes->post('/enrollment/accept-request/(:num)', 'EnrollmentInvitations::acceptRequest/$1', ['filter' => 'roleauth']);
+$routes->post('/enrollment/decline-request/(:num)', 'EnrollmentInvitations::declineRequest/$1', ['filter' => 'roleauth']);
+
 $routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
     $routes->get('dashboard', 'Teacher::dashboard');
     

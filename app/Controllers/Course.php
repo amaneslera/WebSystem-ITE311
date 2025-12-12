@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Models\EnrollmentModel;
 use App\Models\CourseModel;
 use App\Models\NotificationModel;
+use App\Models\EnrollmentInvitationModel;
+use App\Helpers\NotificationHelper;
 use CodeIgniter\RESTful\ResourceController;
 
 class Course extends ResourceController
@@ -52,12 +54,21 @@ class Course extends ResourceController
         // Initialize models
         $enrollmentModel = new EnrollmentModel();
         $courseModel = new CourseModel();
+        $invitationModel = new EnrollmentInvitationModel();
         
         // Check if user is already enrolled
         if ($enrollmentModel->isAlreadyEnrolled($userId, $courseId)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'You are already enrolled in this course'
+            ])->setStatusCode(409);
+        }
+        
+        // Check if there's already a pending invitation or request
+        if ($invitationModel->hasPendingInvitationOrRequest($userId, $courseId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'You already have a pending enrollment request for this course'
             ])->setStatusCode(409);
         }
         
@@ -118,31 +129,40 @@ class Course extends ResourceController
             }
         }
         
-        // Use transaction for atomic enrollment
-        $result = $enrollmentModel->enrollUserWithTransaction([
-            'user_id' => $userId,
-            'course_id' => $courseId,
-            'enrollment_date' => date('Y-m-d H:i:s')
-        ]);
+        // Create enrollment request instead of direct enrollment
+        $message = $this->request->getJSON()->message ?? null;
+        $result = $invitationModel->createRequest($userId, $courseId, $message);
         
         if ($result['success']) {
             // Get course details
             $course = $courseModel->getCourseWithTeacher($courseId);
             
-            // Update session data
-            $currentCount = session()->get('total_courses') ?? 0;
-            session()->set('total_courses', $currentCount + 1);
+            // Notify teacher and admins about the enrollment request
+            try {
+                $notificationHelper = new NotificationHelper();
+                $studentName = session()->get('name');
+                $courseName = $course['title'] ?? 'Unknown Course';
+                
+                // Notify the teacher
+                $teacherMessage = "{$studentName} has requested to enroll in your course: {$courseName}";
+                $notificationHelper->notifyTeacherOfCourse($courseId, $teacherMessage);
+                
+                // Notify admins
+                $adminMessage = "Student enrollment request: {$studentName} → {$courseName}";
+                $notificationHelper->notifyAllAdmins($adminMessage);
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to send enrollment request notification: ' . $e->getMessage());
+            }
             
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Successfully enrolled in the course',
-                'enrollment_id' => $result['enrollment_id'],
+                'message' => 'Enrollment request submitted! Please wait for approval from the teacher or admin.',
                 'course' => $course
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => $result['message'] ?? 'Failed to enroll in the course. Please try again.'
+                'message' => $result['message'] ?? 'Failed to submit enrollment request. Please try again.'
             ])->setStatusCode(500);
         }
     }
