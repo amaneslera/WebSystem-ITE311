@@ -96,6 +96,24 @@
                     <a href="<?= base_url('/users') ?>" class="btn btn-sm btn-primary">View All Users</a>
                 </div>
                 <div class="card-body">
+                    <!-- Search and Filter for Users -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="userSearch" placeholder="Search by name or email...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="roleFilter">
+                                <option value="">All Roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="student">Student</option>
+                            </select>
+                        </div>
+                    </div>
+                    
                     <?php if (!empty($users ?? [])): ?>
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -109,9 +127,11 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="userTableBody">
                                 <?php foreach ($users as $user): ?>
-                                <tr>
+                                <tr data-user-name="<?= strtolower($user['name']) ?>" 
+                                    data-user-email="<?= strtolower($user['email']) ?>"
+                                    data-user-role="<?= $user['role'] ?>">
                                     <td><?= $user['id'] ?></td>
                                     <td><?= $user['name'] ?></td>
                                     <td><?= $user['email'] ?></td>
@@ -155,6 +175,19 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Search and Filter for Courses -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="adminCourseSearch" placeholder="Search by course title, code, or instructor...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearAdminCourseSearch">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <?php if (!empty($all_courses ?? [])): ?>
                         <div class="table-responsive">
                             <table class="table table-hover">
@@ -166,9 +199,15 @@
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <?php foreach ($all_courses as $course): ?>
-                                    <tr>
+                                <tbody id="adminCourseTableBody">
+                                    <?php 
+                                    // Show first 5 courses by default, hide rest with CSS
+                                    foreach ($all_courses as $index => $course): 
+                                    ?>
+                                    <tr data-course-title="<?= strtolower($course['title']) ?>"
+                                        data-course-code="<?= strtolower($course['course_code'] ?? '') ?>"
+                                        data-teacher-name="<?= strtolower($course['teacher_name'] ?? '') ?>"
+                                        class="<?= $index >= 5 ? 'd-none' : '' ?>">
                                         <td>
                                             <strong><?= $course['title'] ?></strong><br>
                                             <small class="text-muted"><?= $course['course_code'] ?? 'N/A' ?></small>
@@ -290,10 +329,26 @@
                             </a>
                         </div>
                         <div class="card-body">
+                            <!-- Search for Teacher Courses -->
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="teacherCourseSearch" placeholder="Search your courses...">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearTeacherCourseSearch">
+                                        <i class="bi bi-x-circle"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <?php if (!empty($courses ?? [])): ?>
-                                <div class="list-group">
-                                    <?php foreach ($courses as $course): ?>
-                                        <div class="list-group-item">
+                                <div class="list-group" id="teacherCoursesList">
+                                    <?php 
+                                    // Show first 5 courses by default, hide rest with CSS
+                                    foreach ($courses as $index => $course): 
+                                    ?>
+                                        <div class="list-group-item teacher-course-item <?= $index >= 5 ? 'd-none' : '' ?>" 
+                                             data-course-title="<?= strtolower($course['title']) ?>"
+                                             data-course-description="<?= strtolower($course['description'] ?? '') ?>">
                                             <div class="row align-items-center">
                                                 <div class="col-md-8 mb-2 mb-md-0">
                                                     <h5 class="mb-1"><?= $course['title'] ?></h5>
@@ -423,40 +478,6 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Notifications Card -->
-                        <div class="col-md-12 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">Notifications</h5>
-                                </div>
-                                <div class="card-body">
-                                    <?php if (!empty($notifications ?? [])): ?>
-                                        <ul class="list-group">
-                                            <?php foreach ($notifications as $notification): ?>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <p class="mb-1"><?= $notification['message'] ?></p>
-                                                    <small class="text-muted"><?= $notification['time_ago'] ?></small>
-                                                </div>
-                                                <?php if ($notification['type'] == 'assignment'): ?>
-                                                    <span class="badge bg-warning rounded-pill">!</span>
-                                                <?php elseif ($notification['type'] == 'message'): ?>
-                                                    <span class="badge bg-info rounded-pill">
-                                                        <i class="bi bi-envelope"></i>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php else: ?>
-                                        <div class="alert alert-light">
-                                            <i class="bi bi-bell"></i> No new notifications.
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -514,40 +535,42 @@
             }
             ?>
             
-            <!-- Course Invitation Alert - Only shows when there are pending invitations -->
+            <!-- Course Invitation Alert - Shows pending invitations with quick actions -->
             <?php if ($invitationCount > 0): ?>
                 <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
-                    <i class="bi bi-envelope-paper-fill me-2"></i>
-                    <strong>You have been invited!</strong> 
-                    You have <?= $invitationCount ?> pending course invitation<?= $invitationCount > 1 ? 's' : '' ?>.
-                    <a href="<?= base_url('enrollment/my-invitations') ?>" class="alert-link fw-bold">Click here to view and respond</a>.
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <i class="bi bi-envelope-paper-fill me-2"></i>
+                            <strong>You have been invited!</strong> 
+                            You have <?= $invitationCount ?> pending course invitation<?= $invitationCount > 1 ? 's' : '' ?>.
+                        </div>
+                        <div>
+                            <?php if ($invitationCount == 1 && isset($pendingInvitations[0])): ?>
+                                <?php $invitation = $pendingInvitations[0]; ?>
+                                <span class="me-2"><strong><?= esc($invitation['course_title']) ?></strong></span>
+                                <button class="btn btn-sm btn-success me-1 accept-invitation-btn" 
+                                        data-invitation-id="<?= $invitation['id'] ?>"
+                                        data-course-title="<?= esc($invitation['course_title']) ?>">
+                                    <i class="bi bi-check-circle"></i> Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger me-1 decline-invitation-btn" 
+                                        data-invitation-id="<?= $invitation['id'] ?>"
+                                        data-course-title="<?= esc($invitation['course_title']) ?>">
+                                    <i class="bi bi-x-circle"></i> Decline
+                                </button>
+                            <?php else: ?>
+                                <a href="<?= base_url('enrollment/my-invitations') ?>" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View All (<?= $invitationCount ?>)
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
             
             <div class="row">
                 <div class="col-md-4">
-                    <!-- Course Invitations Card -->
-                    <div class="card mb-4 stat-card text-white bg-warning">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="card-title">Course Invitations</h5>
-                                    <h2 class="display-4"><?= $invitationCount ?? 0 ?></h2>
-                                </div>
-                                <i class="bi bi-envelope-paper-fill icon-large"></i>
-                            </div>
-                            <p class="card-text">
-                                <?php if ($invitationCount > 0): ?>
-                                    <a href="<?= base_url('enrollment/my-invitations') ?>" class="text-white text-decoration-underline fw-bold">
-                                        <i class="bi bi-arrow-right-circle-fill me-1"></i>View & Respond to Invitations
-                                    </a>
-                                <?php else: ?>
-                                    No pending invitations
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                    </div>
                     
                     <div class="card mb-4 stat-card text-white bg-success">
                         <div class="card-body">
@@ -730,16 +753,21 @@
                 </div>
             </div>
             
-            <!-- Available Courses -->
+            <!-- Available Courses with Search - Showing First 5 -->
             <div class="card mt-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Available Courses</h5>
-                    <span class="badge bg-primary rounded-pill"><?= count($available_courses ?? []) ?> courses</span>
+                    <div>
+                        <span class="badge bg-primary rounded-pill me-2" id="coursesCount"><?= count($available_courses ?? []) ?> total</span>
+                        <a href="<?= base_url('courses/search') ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-grid-3x3"></i> View All & Advanced Search
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <?php if (!empty($available_courses ?? [])): ?>
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="coursesTable">
                                 <thead>
                                     <tr>
                                         <th>Course</th>
@@ -748,16 +776,55 @@
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <?php foreach ($available_courses as $course): ?>
-                                    <tr>
-                                        <td><?= $course['title'] ?></td>
-                                        <td><?= $course['teacher_name'] ?></td>
-                                        <td><?= substr($course['description'] ?? 'No description available', 0, 80) ?>...</td>
+                                <tbody id="coursesTableBody">
+                                    <?php 
+                                    // Show first 5 courses by default
+                                    $displayedCourses = array_slice($available_courses, 0, 5);
+                                    foreach ($displayedCourses as $course): 
+                                    ?>
+                                    <tr data-course-title="<?= esc(strtolower($course['title'])) ?>"
+                                        data-course-code="<?= esc(strtolower($course['course_code'] ?? $course['code'] ?? '')) ?>"
+                                        data-course-description="<?= esc(strtolower($course['description'] ?? '')) ?>"
+                                        data-teacher-name="<?= esc(strtolower($course['teacher_name'])) ?>">
+                                        <td>
+                                            <strong><?= esc($course['title']) ?></strong>
+                                            <?php if (!empty($course['course_code'] ?? $course['code'])): ?>
+                                                <br><small class="text-muted"><?= esc($course['course_code'] ?? $course['code']) ?></small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= esc($course['teacher_name']) ?></td>
+                                        <td><?= esc(substr($course['description'] ?? 'No description available', 0, 80)) ?>...</td>
                                         <td>
                                             <button class="btn btn-sm btn-success enroll-btn" 
                                                     data-course-id="<?= $course['id'] ?>" 
-                                                    data-course-title="<?= $course['title'] ?>">
+                                                    data-course-title="<?= esc($course['title']) ?>">
+                                                <i class="bi bi-plus-circle"></i> Enroll
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                    
+                                    <!-- Hidden rows for remaining courses (for search functionality) -->
+                                    <?php 
+                                    $remainingCourses = array_slice($available_courses, 5);
+                                    foreach ($remainingCourses as $course): 
+                                    ?>
+                                    <tr class="d-none" data-course-title="<?= esc(strtolower($course['title'])) ?>"
+                                        data-course-code="<?= esc(strtolower($course['course_code'] ?? $course['code'] ?? '')) ?>"
+                                        data-course-description="<?= esc(strtolower($course['description'] ?? '')) ?>"
+                                        data-teacher-name="<?= esc(strtolower($course['teacher_name'])) ?>">
+                                        <td>
+                                            <strong><?= esc($course['title']) ?></strong>
+                                            <?php if (!empty($course['course_code'] ?? $course['code'])): ?>
+                                                <br><small class="text-muted"><?= esc($course['course_code'] ?? $course['code']) ?></small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= esc($course['teacher_name']) ?></td>
+                                        <td><?= esc(substr($course['description'] ?? 'No description available', 0, 80)) ?>...</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success enroll-btn" 
+                                                    data-course-id="<?= $course['id'] ?>" 
+                                                    data-course-title="<?= esc($course['title']) ?>">
                                                 <i class="bi bi-plus-circle"></i> Enroll
                                             </button>
                                         </td>
@@ -765,6 +832,12 @@
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="<?= base_url('courses/search') ?>" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Advanced Search - Browse All <?= count($available_courses) ?> Courses
+                            </a>
                         </div>
                     <?php else: ?>
                         <div class="alert alert-light">
@@ -839,12 +912,354 @@
     
     <script>
 $(document).ready(function() {
-    // Remove all existing alerts when page loads
-    $('.alert').remove();
+    // Remove all existing alerts when page loads (except structural ones)
+    $('.alert:not(.alert-info):not(.alert-warning)').remove();
     
-    // Listen for clicks on Enroll buttons
-    $('.enroll-btn').click(function(e) {
-        // Prevent default behavior
+    // ========================================
+    // Dashboard Quick Search Function
+    // ========================================
+    
+    console.log('🔍 Dashboard search initialized');
+    console.log('Course rows available:', $('#coursesTableBody tr').length);
+    
+    // Dashboard quick search function - searches through all courses
+    function dashboardQuickSearch(searchTerm) {
+        const $rows = $('#coursesTableBody tr');
+        let visibleCount = 0;
+        
+        console.log('Dashboard search for:', searchTerm);
+        
+        if (!searchTerm || searchTerm.trim() === '') {
+            // Reset: show only first 5 courses
+            $rows.each(function(index) {
+                if (index < 5) {
+                    $(this).removeClass('d-none').show();
+                } else {
+                    $(this).addClass('d-none').hide();
+                }
+            });
+            visibleCount = Math.min(5, $rows.length);
+            $('#searchResults').empty();
+            $('#coursesCount').text('<?= count($available_courses ?? []) ?> total');
+        } else {
+            // Search through ALL courses (including hidden ones) - same logic as advanced search
+            const term = searchTerm.toLowerCase().trim();
+            
+            $rows.each(function() {
+                const $row = $(this);
+                // Search through the entire row text content (same as advanced search page)
+                const rowText = $row.text().toLowerCase();
+                
+                // Check if search term matches
+                if (rowText.indexOf(term) > -1) {
+                    $row.removeClass('d-none').show();
+                    visibleCount++;
+                } else {
+                    $row.addClass('d-none').hide();
+                }
+            });
+            
+            console.log('Found courses:', visibleCount);
+            
+            // Show search results message
+            if (visibleCount === 0) {
+                $('#searchResults').html(
+                    '<div class="alert alert-warning">' +
+                    '<i class="bi bi-exclamation-triangle"></i> No courses found. <a href="<?= base_url('courses/search') ?>">Try advanced search</a>' +
+                    '</div>'
+                );
+            } else {
+                $('#searchResults').html(
+                    '<div class="alert alert-success">' +
+                    '<i class="bi bi-check-circle"></i> Found ' + visibleCount + ' course(s)' +
+                    '</div>'
+                );
+            }
+            
+            $('#coursesCount').text(visibleCount + ' found');
+        }
+        
+        // Re-bind enroll buttons for newly visible courses
+        bindEnrollButtons();
+    }
+    
+    // Server-side search function (accurate, comprehensive)
+    function serverSideSearch(searchTerm) {
+        if (!searchTerm) {
+            location.reload(); // Reload to show all courses
+            return;
+        }
+        
+        // Show loading state
+        $('#searchResults').html(
+            '<div class="alert alert-info">' +
+            '<span class="spinner-border spinner-border-sm me-2"></span> Searching server database...' +
+            '</div>'
+        );
+        
+        // Make AJAX request to server
+        $.ajax({
+            url: '<?= base_url('course/search') ?>',
+            type: 'GET',
+            data: { search_term: searchTerm },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Clear table
+                    $('#coursesTableBody').empty();
+                    
+                    if (response.courses.length > 0) {
+                        // Add each course to table
+                        response.courses.forEach(function(course) {
+                            const row = `
+                                <tr data-course-title="${(course.title || '').toLowerCase()}"
+                                    data-course-code="${(course.course_code || course.code || '').toLowerCase()}"
+                                    data-course-description="${(course.description || '').toLowerCase()}"
+                                    data-teacher-name="${(course.teacher_name || '').toLowerCase()}">
+                                    <td>
+                                        <strong>${course.title}</strong>
+                                        ${course.course_code || course.code ? '<br><small class="text-muted">' + (course.course_code || course.code) + '</small>' : ''}
+                                    </td>
+                                    <td>${course.teacher_name || 'No instructor'}</td>
+                                    <td>${(course.description || 'No description').substring(0, 80)}...</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success enroll-btn" 
+                                                data-course-id="${course.id}" 
+                                                data-course-title="${course.title}">
+                                            <i class="bi bi-plus-circle"></i> Enroll
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            $('#coursesTableBody').append(row);
+                        });
+                        
+                        // Update count
+                        $('#coursesCount').text(response.count + ' courses');
+                        
+                        // Show success message
+                        $('#searchResults').html(
+                            '<div class="alert alert-success">' +
+                            '<i class="bi bi-check-circle"></i> Found ' + response.count + ' course(s) from server' +
+                            '</div>'
+                        );
+                    } else {
+                        $('#searchResults').html(
+                            '<div class="alert alert-warning">' +
+                            '<i class="bi bi-exclamation-triangle"></i> No courses found in database matching "' + searchTerm + '"' +
+                            '</div>'
+                        );
+                        $('#coursesCount').text('0 courses');
+                    }
+                    
+                    // Re-bind enroll buttons
+                    bindEnrollButtons();
+                } else {
+                    $('#searchResults').html(
+                        '<div class="alert alert-danger">' +
+                        '<i class="bi bi-x-circle"></i> Search failed: ' + (response.message || 'Unknown error') +
+                        '</div>'
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#searchResults').html(
+                    '<div class="alert alert-danger">' +
+                    '<i class="bi bi-x-circle"></i> Error performing search. Please try again.' +
+                    '</div>'
+                );
+            }
+        });
+    }
+    
+    // Function to bind enroll button events
+    function bindEnrollButtons() {
+        $('.enroll-btn').off('click').on('click', function(e) {
+            enrollButtonHandler.call(this, e);
+        });
+    }
+    
+    // Initial binding of enroll buttons
+    bindEnrollButtons();
+    
+    // ========================================
+    // Admin User Search and Filter
+    // ========================================
+    $('#userSearch, #roleFilter').on('input change', function() {
+        const searchTerm = $('#userSearch').val().toLowerCase();
+        const roleFilter = $('#roleFilter').val();
+        
+        $('#userTableBody tr').each(function() {
+            const $row = $(this);
+            const name = $row.attr('data-user-name') || '';
+            const email = $row.attr('data-user-email') || '';
+            const role = $row.attr('data-user-role') || '';
+            
+            const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+            const matchesRole = !roleFilter || role === roleFilter;
+            
+            if (matchesSearch && matchesRole) {
+                $row.show();
+            } else {
+                $row.hide();
+            }
+        });
+    });
+    
+    // ========================================
+    // Admin Course Search
+    // ========================================
+    $('#adminCourseSearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        
+        $('#adminCourseTableBody tr').each(function() {
+            const $row = $(this);
+            const title = $row.attr('data-course-title') || '';
+            const code = $row.attr('data-course-code') || '';
+            const teacher = $row.attr('data-teacher-name') || '';
+            
+            if (title.includes(searchTerm) || code.includes(searchTerm) || teacher.includes(searchTerm)) {
+                $row.removeClass('d-none');
+            } else {
+                $row.addClass('d-none');
+            }
+        });
+    });
+    
+    $('#clearAdminCourseSearch').on('click', function() {
+        $('#adminCourseSearch').val('');
+        // Reset to initial state: show first 5, hide rest
+        $('#adminCourseTableBody tr').each(function(index) {
+            if (index < 5) {
+                $(this).removeClass('d-none');
+            } else {
+                $(this).addClass('d-none');
+            }
+        });
+    });
+    
+    // ========================================
+    // Teacher Course Search
+    // ========================================
+    $('#teacherCourseSearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        
+        $('.teacher-course-item').each(function() {
+            const $item = $(this);
+            const title = $item.attr('data-course-title') || '';
+            const description = $item.attr('data-course-description') || '';
+            
+            if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                $item.removeClass('d-none');
+            } else {
+                $item.addClass('d-none');
+            }
+        });
+    });
+    
+    $('#clearTeacherCourseSearch').on('click', function() {
+        $('#teacherCourseSearch').val('');
+        // Reset to initial state: show first 5, hide rest
+        $('.teacher-course-item').each(function(index) {
+            if (index < 5) {
+                $(this).removeClass('d-none');
+            } else {
+                $(this).addClass('d-none');
+            }
+        });
+    });
+    
+    // ========================================
+    // Invitation Accept/Decline Handlers
+    // ========================================
+    $('.accept-invitation-btn').on('click', function() {
+        const invitationId = $(this).data('invitation-id');
+        const courseTitle = $(this).data('course-title');
+        const $btn = $(this);
+        
+        if (!confirm(`Accept invitation to "${courseTitle}"?`)) {
+            return;
+        }
+        
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        
+        $.post('<?= base_url('enrollment/respond-invitation') ?>', {
+            invitation_id: invitationId,
+            action: 'accept',
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                $('.alert-warning').fadeOut(300, function() {
+                    $(this).remove();
+                });
+                
+                // Show success message
+                $('body').prepend(`
+                    <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+                
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                alert('Error: ' + data.message);
+                $btn.prop('disabled', false).html('<i class="bi bi-check-circle"></i> Accept');
+            }
+        }).fail(function() {
+            alert('An error occurred. Please try again.');
+            $btn.prop('disabled', false).html('<i class="bi bi-check-circle"></i> Accept');
+        });
+    });
+    
+    $('.decline-invitation-btn').on('click', function() {
+        const invitationId = $(this).data('invitation-id');
+        const courseTitle = $(this).data('course-title');
+        const $btn = $(this);
+        
+        if (!confirm(`Decline invitation to "${courseTitle}"?`)) {
+            return;
+        }
+        
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        
+        $.post('<?= base_url('enrollment/respond-invitation') ?>', {
+            invitation_id: invitationId,
+            action: 'decline',
+            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        }).done(function(data) {
+            if (data.success) {
+                $('.alert-warning').fadeOut(300, function() {
+                    $(this).remove();
+                });
+                
+                // Show success message
+                $('body').prepend(`
+                    <div class="alert alert-info alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+                
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                alert('Error: ' + data.message);
+                $btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Decline');
+            }
+        }).fail(function() {
+            alert('An error occurred. Please try again.');
+            $btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Decline');
+        });
+    });
+    
+    // ========================================
+    // End Lab 9 Search Code
+    // ========================================
+    
+    // Store the enroll button handler for reuse
+    function enrollButtonHandler(e) {
         e.preventDefault();
         
         // Get course data from data attributes
@@ -933,7 +1348,7 @@ $(document).ready(function() {
                 $button.prop('disabled', false)
                        .html('<i class="bi bi-plus-circle"></i> Enroll');
             });
-    });
+    };
 
     // Admin: Assign Teacher Button
     $('.assign-teacher-btn').click(function() {
@@ -971,9 +1386,12 @@ $(document).ready(function() {
     $('#enrollStudentForm').submit(function(e) {
         e.preventDefault();
         
+        const enrollmentMethod = $('input[name="enrollmentMethod"]:checked').val();
+        
         $.post('<?= base_url('admin/courses/enroll-student') ?>', {
             student_id: $('#adminStudentSelect').val(),
             course_id: $('#adminCourseSelect').val(),
+            enrollment_method: enrollmentMethod,
             <?= csrf_token() ?>: '<?= csrf_hash() ?>'
         }).done(function(data) {
             if (data.success) {
@@ -1013,12 +1431,14 @@ $(document).ready(function() {
             return;
         }
         
+        const enrollmentMethod = $('input[name="bulkEnrollmentMethod"]:checked').val();
         const $submitBtn = $('#adminBulkEnrollForm button[type="submit"]');
-        $submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Enrolling...');
+        $submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Processing...');
         
         $.post('<?= base_url('admin/courses/bulk-enroll') ?>', {
             student_ids: selectedStudents,
             course_id: courseId,
+            enrollment_method: enrollmentMethod,
             <?= csrf_token() ?>: '<?= csrf_hash() ?>'
         }).done(function(data) {
             if (data.success) {
@@ -1077,7 +1497,9 @@ $(document).ready(function() {
             alert(errorMessage);
         });
     });
-});
+    
+}); // End of $(document).ready()
+
 </script>
 
 <!-- Admin: Create Course Modal -->
@@ -1228,6 +1650,23 @@ $(document).ready(function() {
                             ?>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Enrollment Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="enrollmentMethod" id="directEnroll" value="direct" checked>
+                            <label class="form-check-label" for="directEnroll">
+                                <i class="bi bi-lightning-charge-fill text-success"></i> <strong>Direct Enrollment</strong>
+                                <small class="d-block text-muted">Student will be enrolled immediately</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="enrollmentMethod" id="sendInvitation" value="invitation">
+                            <label class="form-check-label" for="sendInvitation">
+                                <i class="bi bi-envelope-fill text-primary"></i> <strong>Send Invitation</strong>
+                                <small class="d-block text-muted">Student must accept invitation to enroll</small>
+                            </label>
+                        </div>
+                    </div>
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Admin can override all restrictions (capacity, prerequisites, schedule conflicts)
                     </div>
@@ -1285,10 +1724,27 @@ $(document).ready(function() {
                             You can select multiple students at once. Click first student, hold Ctrl/Cmd, click others.
                         </small>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Enrollment Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="bulkEnrollmentMethod" id="bulkDirectEnroll" value="direct" checked>
+                            <label class="form-check-label" for="bulkDirectEnroll">
+                                <i class="bi bi-lightning-charge-fill text-success"></i> <strong>Direct Enrollment</strong>
+                                <small class="d-block text-muted">All students will be enrolled immediately</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="bulkEnrollmentMethod" id="bulkSendInvitation" value="invitation">
+                            <label class="form-check-label" for="bulkSendInvitation">
+                                <i class="bi bi-envelope-fill text-primary"></i> <strong>Send Invitations</strong>
+                                <small class="d-block text-muted">Students must accept invitations to enroll</small>
+                            </label>
+                        </div>
+                    </div>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle"></i> 
                         <strong>Bulk Enrollment</strong><br>
-                        This will enroll all selected students at once. Admin can override capacity limits.
+                        This will process all selected students at once. Admin can override capacity limits.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1342,6 +1798,28 @@ $(document).ready(function() {
         </div>
     </div>
 </div>
+
+<!-- Real-Time Notification Updates Script -->
+<script>
+</script>
+
+<!-- Add rotation animation for loading indicator -->
+<style>
+@keyframes rotating {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.rotating {
+    animation: rotating 1s linear infinite;
+    display: inline-block;
+}
+
+#notificationsList .list-group-item.bg-light {
+    border-left: 3px solid #0d6efd;
+    font-weight: 500;
+}
+</style>
 
 </body>
 </html>

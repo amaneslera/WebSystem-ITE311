@@ -182,4 +182,52 @@ class Course extends ResourceController
             'materials' => $materials
         ]);
     }
+
+    /**
+     * Search courses - supports both AJAX and regular requests
+     * Laboratory Exercise 9: Search and Filtering System
+     * 
+     * @return \CodeIgniter\HTTP\Response|string
+     */
+    public function search()
+    {
+        $searchTerm = $this->request->getGet('search_term') ?? $this->request->getPost('search_term');
+        $courseModel = new CourseModel();
+        
+        if (!empty($searchTerm)) {
+            // Search in course title, code, and description using LIKE queries
+            $courses = $courseModel->select('courses.*, users.name as teacher_name')
+                ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'', 'left')
+                ->groupStart()
+                    ->like('courses.title', $searchTerm)
+                    ->orLike('courses.course_code', $searchTerm)
+                    ->orLike('courses.description', $searchTerm)
+                    ->orLike('courses.code', $searchTerm)
+                ->groupEnd()
+                ->where('courses.status', 'active')
+                ->findAll();
+        } else {
+            // Return all active courses if no search term
+            $courses = $courseModel->select('courses.*, users.name as teacher_name')
+                ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'', 'left')
+                ->where('courses.status', 'active')
+                ->findAll();
+        }
+        
+        // Return JSON for AJAX requests
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => true,
+                'courses' => $courses,
+                'count' => count($courses),
+                'search_term' => $searchTerm
+            ]);
+        }
+        
+        // Return view for regular requests (courses/index.php)
+        return view('courses/index', [
+            'courses' => $courses,
+            'search_term' => $searchTerm ?? ''
+        ]);
+    }
 }

@@ -27,6 +27,20 @@
             </div>
         </div>
 
+        <!-- Search Bar -->
+        <div class="row mb-4">
+            <div class="col-md-8 mx-auto">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="teacherAllCoursesSearch" 
+                           placeholder="Search by course title, code, description, department...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearTeacherAllCoursesSearch">
+                        <i class="bi bi-x-lg"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Summary Stats -->
         <div class="row mb-4">
             <div class="col-md-4">
@@ -79,9 +93,14 @@
                 </div>
             </div>
         <?php else: ?>
-            <div class="row">
+            <div class="row" id="teacherAllCoursesContainer">
                 <?php foreach ($courses as $course): ?>
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-6 mb-4 teacher-all-course-item" 
+                         data-course-title="<?= strtolower(esc($course['title'])) ?>"
+                         data-course-code="<?= strtolower(esc($course['course_code'])) ?>"
+                         data-course-description="<?= strtolower(esc($course['description'] ?? '')) ?>"
+                         data-course-department="<?= strtolower(esc($course['department'] ?? '')) ?>"
+                         data-course-semester="<?= strtolower(esc($course['semester'] ?? '')) ?>">
                         <div class="card course-card h-100 shadow-sm">
                             <div class="card-header bg-primary text-white">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -289,6 +308,37 @@
                     }
                     alert(errorMessage);
                 });
+        });
+
+        // ========================================
+        // Teacher All Courses Page Search
+        // ========================================
+        $('#teacherAllCoursesSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            
+            $('.teacher-all-course-item').each(function() {
+                const $item = $(this);
+                const title = $item.attr('data-course-title') || '';
+                const code = $item.attr('data-course-code') || '';
+                const description = $item.attr('data-course-description') || '';
+                const department = $item.attr('data-course-department') || '';
+                const semester = $item.attr('data-course-semester') || '';
+                
+                if (title.includes(searchTerm) || 
+                    code.includes(searchTerm) || 
+                    description.includes(searchTerm) || 
+                    department.includes(searchTerm) || 
+                    semester.includes(searchTerm)) {
+                    $item.show();
+                } else {
+                    $item.hide();
+                }
+            });
+        });
+        
+        $('#clearTeacherAllCoursesSearch').on('click', function() {
+            $('#teacherAllCoursesSearch').val('');
+            $('.teacher-all-course-item').show();
         });
     </script>
 </body>

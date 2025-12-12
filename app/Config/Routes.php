@@ -22,6 +22,12 @@ $routes->get('/logout', 'Auth::logout');
 $routes->get('/dashboard', 'Auth::dashboard');
 $routes->post('/course/enroll', 'Course::enroll', ['filter' => 'ratelimit']);
 
+// Lab 9: Search and Filtering - Multiple route aliases
+$routes->get('/course/search', 'Course::search');
+$routes->post('/course/search', 'Course::search');
+$routes->get('/courses/search', 'Course::search');
+$routes->post('/courses/search', 'Course::search');
+
 // Course View (Single page for all course content)
 $routes->get('/course/view/(:num)', 'CourseView::view/$1', ['filter' => 'roleauth']);
 $routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');
@@ -46,6 +52,7 @@ $routes->get('/notifications/mark-all-read', 'Notifications::markAllRead');
 // Enrollment Invitation Routes
 // Student invitation routes
 $routes->get('/enrollment/my-invitations', 'EnrollmentInvitations::myInvitations', ['filter' => 'roleauth']);
+$routes->post('/enrollment/respond-invitation', 'EnrollmentInvitations::respondInvitation', ['filter' => 'roleauth']);
 $routes->post('/enrollment/accept-invitation/(:num)', 'EnrollmentInvitations::acceptInvitation/$1', ['filter' => 'roleauth']);
 $routes->post('/enrollment/decline-invitation/(:num)', 'EnrollmentInvitations::declineInvitation/$1', ['filter' => 'roleauth']);
 

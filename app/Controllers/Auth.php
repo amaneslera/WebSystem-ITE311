@@ -243,7 +243,7 @@ class Auth extends BaseController
                         $enrolledCourseIds = array_column($enrolledCourseIds, 'course_id');
                     }
                     
-                    // Get courses filtered by student's program and year level
+                    // Get ALL active courses (not enrolled) - same as advanced search
                     $builder = $this->db->table('courses')
                         ->select('courses.*, users.name as teacher_name')
                         ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
@@ -251,22 +251,6 @@ class Auth extends BaseController
                     
                     if (!empty($enrolledCourseIds)) {
                         $builder->whereNotIn('courses.id', $enrolledCourseIds);
-                    }
-                    
-                    // Filter by student's program if set
-                    if (!empty($student['program_id'])) {
-                        $builder->groupStart()
-                                ->where('courses.program_id', $student['program_id'])
-                                ->orWhere('courses.program_id', null) // Include general courses
-                                ->groupEnd();
-                    }
-                    
-                    // Filter by student's year level if set
-                    if (!empty($student['year_level'])) {
-                        $builder->groupStart()
-                                ->where('courses.year_level', $student['year_level'])
-                                ->orWhere('courses.year_level', null) // Include courses for all years
-                                ->groupEnd();
                     }
                     
                     $data['available_courses'] = $builder->get()->getResultArray();

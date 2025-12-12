@@ -292,6 +292,7 @@ class AdminCourses extends Controller
 
         $studentId = $this->request->getPost('student_id');
         $courseId = $this->request->getPost('course_id');
+        $enrollmentMethod = $this->request->getPost('enrollment_method') ?? 'invitation'; // Default to invitation for backward compatibility
 
         try {
             $enrollmentModel = new EnrollmentModel();
@@ -306,63 +307,119 @@ class AdminCourses extends Controller
                 ])->setStatusCode(409);
             }
 
-            // Check if there's already a pending invitation or request
-            if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'There is already a pending invitation or request for this student and course'
-                ])->setStatusCode(409);
-            }
-
             // Admin can override capacity, but still check
             if (!$courseModel->hasAvailableSeats($courseId)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Warning: Course is at full capacity'
-                ])->setStatusCode(409);
+                // Just a warning for admin, don't block
+                log_message('info', 'Admin enrolling student despite course being at capacity');
             }
 
-            // Create invitation instead of direct enrollment
-            $adminId = session()->get('user_id');
-            $message = "You have been invited to enroll in this course by an administrator.";
-            $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
+            // Handle based on enrollment method
+            if ($enrollmentMethod === 'direct') {
+                // For direct enrollment, check if there's a pending invitation and auto-accept it
+                $pendingInvitation = $invitationModel
+                    ->where('user_id', $studentId)
+                    ->where('course_id', $courseId)
+                    ->where('status', 'pending')
+                    ->first();
 
-        if ($result['success']) {
-            // Notify student and teacher about the invitation
-            try {
-                $notificationHelper = new NotificationHelper();
-                $userModel = new UserModel();
-                $student = $userModel->find($studentId);
-                $course = $courseModel->find($courseId);
-                
-                if ($student && $course) {
-                    $studentName = $student['name'];
-                    $courseName = $course['course_name'] ?? $course['title'] ?? 'Unknown Course';
-                    
-                    // Notify the student
-                    $studentMessage = "You have been invited to enroll in: {$courseName}";
-                    $notificationHelper->notifyStudent($studentId, $studentMessage);
-                    
-                    // Notify the teacher
-                    if (isset($course['teacher_id']) && $course['teacher_id']) {
-                        $teacherMessage = "Admin sent invitation: {$studentName} → {$courseName}";
-                        $notificationHelper->notifyTeacher($course['teacher_id'], $teacherMessage);
-                    }
+                if ($pendingInvitation) {
+                    // Auto-accept the pending invitation before enrolling
+                    $invitationModel->accept($pendingInvitation['id'], 'Auto-accepted by admin via direct enrollment');
+                    log_message('info', "Admin auto-accepted pending invitation #{$pendingInvitation['id']} for student {$studentId}");
                 }
-            } catch (\Exception $e) {
-                log_message('error', 'Failed to send admin invitation notification: ' . $e->getMessage());
+                // Direct enrollment - enroll student immediately
+                $result = $enrollmentModel->enrollUserWithTransaction([
+                    'user_id' => $studentId,
+                    'course_id' => $courseId
+                ]);
+
+                if ($result['success']) {
+                    // Notify student, teacher, and admins about direct enrollment
+                    try {
+                        $notificationHelper = new NotificationHelper();
+                        $userModel = new UserModel();
+                        $student = $userModel->find($studentId);
+                        $course = $courseModel->find($courseId);
+                        
+                        if ($student && $course) {
+                            $studentName = $student['name'];
+                            $courseName = $course['course_name'] ?? $course['title'] ?? 'Unknown Course';
+                            
+                            // Notify the student
+                            $studentMessage = "You have been directly enrolled in: {$courseName}";
+                            $notificationHelper->notifyStudent($studentId, $studentMessage);
+                            
+                            // Notify the teacher
+                            if (isset($course['teacher_id']) && $course['teacher_id']) {
+                                $teacherMessage = "Admin enrolled {$studentName} in your course: {$courseName}";
+                                $notificationHelper->notifyTeacher($course['teacher_id'], $teacherMessage);
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        log_message('error', 'Failed to send direct enrollment notification: ' . $e->getMessage());
+                    }
+                    
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Student enrolled successfully!'
+                    ]);
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => $result['message'] ?? 'Failed to enroll student'
+                    ])->setStatusCode(500);
+                }
+            } else {
+                // Invitation method - check if there's already a pending invitation or request
+                if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'There is already a pending invitation or request for this student and course'
+                    ])->setStatusCode(409);
+                }
+
+                // Send invitation
+                $adminId = session()->get('user_id');
+                $message = "You have been invited to enroll in this course by an administrator.";
+                $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
+
+                if ($result['success']) {
+                    // Notify student and teacher about the invitation
+                    try {
+                        $notificationHelper = new NotificationHelper();
+                        $userModel = new UserModel();
+                        $student = $userModel->find($studentId);
+                        $course = $courseModel->find($courseId);
+                        
+                        if ($student && $course) {
+                            $studentName = $student['name'];
+                            $courseName = $course['course_name'] ?? $course['title'] ?? 'Unknown Course';
+                            
+                            // Notify the student
+                            $studentMessage = "You have been invited to enroll in: {$courseName}";
+                            $notificationHelper->notifyStudent($studentId, $studentMessage);
+                            
+                            // Notify the teacher
+                            if (isset($course['teacher_id']) && $course['teacher_id']) {
+                                $teacherMessage = "Admin sent invitation: {$studentName} → {$courseName}";
+                                $notificationHelper->notifyTeacher($course['teacher_id'], $teacherMessage);
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        log_message('error', 'Failed to send admin invitation notification: ' . $e->getMessage());
+                    }
+                    
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Invitation sent successfully! Student will be notified.'
+                    ]);
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => $result['message']
+                    ])->setStatusCode(500);
+                }
             }
-            
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Invitation sent successfully! Student will be notified.'
-            ]);
-        } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $result['message']
-            ])->setStatusCode(500);
-        }
         } catch (\Exception $e) {
             log_message('error', 'Admin enrollment error: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -450,6 +507,7 @@ class AdminCourses extends Controller
 
         $studentIds = $this->request->getPost('student_ids');
         $courseId = $this->request->getPost('course_id');
+        $enrollmentMethod = $this->request->getPost('enrollment_method') ?? 'invitation'; // Default to invitation
 
         if (empty($studentIds) || !is_array($studentIds)) {
             return $this->response->setJSON([
@@ -471,7 +529,7 @@ class AdminCourses extends Controller
             ])->setStatusCode(404);
         }
 
-        $invited = 0;
+        $processed = 0;
         $failed = 0;
         $errors = [];
         $adminId = session()->get('user_id');
@@ -485,36 +543,84 @@ class AdminCourses extends Controller
                 continue;
             }
 
-            // Check if there's already a pending invitation or request
-            if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
-                $user = $userModel->find($studentId);
-                $errors[] = ($user['name'] ?? 'Student') . ' already has a pending invitation';
-                $failed++;
-                continue;
-            }
+            if ($enrollmentMethod === 'direct') {
+                // For direct enrollment, check and auto-accept any pending invitations
+                $pendingInvitation = $invitationModel
+                    ->where('user_id', $studentId)
+                    ->where('course_id', $courseId)
+                    ->where('status', 'pending')
+                    ->first();
 
-            // Send invitation instead of direct enrollment
-            $message = "You have been invited to enroll in this course by an administrator (bulk enrollment).";
-            $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
+                if ($pendingInvitation) {
+                    // Auto-accept the pending invitation
+                    $invitationModel->accept($pendingInvitation['id'], 'Auto-accepted by admin via bulk direct enrollment');
+                    log_message('info', "Admin auto-accepted pending invitation #{$pendingInvitation['id']} for student {$studentId} during bulk enrollment");
+                }
+                // Direct enrollment
+                $result = $enrollmentModel->enrollUserWithTransaction([
+                    'user_id' => $studentId,
+                    'course_id' => $courseId
+                ]);
 
-            if ($result['success']) {
-                $invited++;
-                
-                // Notify the student
-                try {
-                    $notificationHelper = new NotificationHelper();
-                    $notificationHelper->notifyStudent($studentId, "You have been invited to enroll in: {$course['title']}");
-                } catch (\Exception $e) {
-                    log_message('error', 'Failed to send bulk invitation notification: ' . $e->getMessage());
+                if ($result['success']) {
+                    $processed++;
+                    
+                    // Notify both student and teacher
+                    try {
+                        $notificationHelper = new NotificationHelper();
+                        $student = $userModel->find($studentId);
+                        $courseName = $course['title'];
+                        
+                        // Notify the student
+                        $notificationHelper->notifyStudent($studentId, "You have been enrolled in: {$courseName}");
+                        
+                        // Notify the teacher assigned to the course
+                        if (isset($course['teacher_id']) && $course['teacher_id']) {
+                            $studentName = $student['name'] ?? 'A student';
+                            $teacherMessage = "Admin enrolled {$studentName} in your course: {$courseName}";
+                            $notificationHelper->notifyTeacher($course['teacher_id'], $teacherMessage);
+                        }
+                    } catch (\Exception $e) {
+                        log_message('error', 'Failed to send bulk enrollment notification: ' . $e->getMessage());
+                    }
+                } else {
+                    $failed++;
+                    $user = $userModel->find($studentId);
+                    $errors[] = ($user['name'] ?? 'Student') . ': ' . $result['message'];
                 }
             } else {
-                $failed++;
-                $user = $userModel->find($studentId);
-                $errors[] = ($user['name'] ?? 'Student') . ': ' . $result['message'];
+                // For invitation mode, check if there's already a pending invitation
+                if ($invitationModel->hasPendingInvitationOrRequest($studentId, $courseId)) {
+                    $user = $userModel->find($studentId);
+                    $errors[] = ($user['name'] ?? 'Student') . ' already has a pending invitation';
+                    $failed++;
+                    continue;
+                }
+
+                // Send invitation
+                $message = "You have been invited to enroll in this course by an administrator (bulk invitation).";
+                $result = $invitationModel->createInvitation($studentId, $courseId, $adminId, $message);
+
+                if ($result['success']) {
+                    $processed++;
+                    
+                    // Notify the student
+                    try {
+                        $notificationHelper = new NotificationHelper();
+                        $notificationHelper->notifyStudent($studentId, "You have been invited to enroll in: {$course['title']}");
+                    } catch (\Exception $e) {
+                        log_message('error', 'Failed to send bulk invitation notification: ' . $e->getMessage());
+                    }
+                } else {
+                    $failed++;
+                    $user = $userModel->find($studentId);
+                    $errors[] = ($user['name'] ?? 'Student') . ': ' . $result['message'];
+                }
             }
         }
 
-        $message = "Sent $invited invitation(s).";
+        $actionText = $enrollmentMethod === 'direct' ? 'enrolled' : 'sent invitations to';
+        $message = "Successfully $actionText $processed student(s).";
         if ($failed > 0) {
             $message .= " $failed failed.";
             if (!empty($errors)) {
@@ -523,8 +629,8 @@ class AdminCourses extends Controller
         }
 
         return $this->response->setJSON([
-            'success' => $invited > 0,
-            'invited_count' => $invited,
+            'success' => $processed > 0,
+            'enrolled_count' => $processed,
             'failed_count' => $failed,
             'message' => $message
         ]);

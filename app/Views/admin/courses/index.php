@@ -20,6 +20,20 @@
             </div>
         <?php endif; ?>
 
+        <!-- Search Bar -->
+        <div class="row mb-4">
+            <div class="col-md-8 mx-auto">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="adminAllCoursesSearch" 
+                           placeholder="Search by course title, code, teacher, department, semester...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearAdminAllCoursesSearch">
+                        <i class="bi bi-x-lg"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Courses</h5>
@@ -45,9 +59,14 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="adminAllCoursesTableBody">
                                 <?php foreach ($courses as $course): ?>
-                                    <tr>
+                                    <tr class="admin-all-course-row"
+                                        data-course-title="<?= strtolower(esc($course['title'])) ?>"
+                                        data-course-code="<?= strtolower(esc($course['course_code'])) ?>"
+                                        data-teacher-name="<?= strtolower(esc($course['teacher_name'] ?? '')) ?>"
+                                        data-course-department="<?= strtolower(esc($course['department'] ?? '')) ?>"
+                                        data-course-semester="<?= strtolower(esc($course['semester'] ?? '')) ?>">
                                         <td><strong><?= esc($course['course_code']) ?></strong></td>
                                         <td><?= esc($course['title']) ?></td>
                                         <td>
@@ -178,6 +197,37 @@
             $('.btn-assign-teacher').on('click', function() {
                 alert('Please use the Assign Teacher feature from the dashboard');
                 window.location.href = '<?= base_url('/admin/dashboard') ?>';
+            });
+
+            // ========================================
+            // Admin All Courses Page Search
+            // ========================================
+            $('#adminAllCoursesSearch').on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                
+                $('.admin-all-course-row').each(function() {
+                    const $row = $(this);
+                    const title = $row.attr('data-course-title') || '';
+                    const code = $row.attr('data-course-code') || '';
+                    const teacher = $row.attr('data-teacher-name') || '';
+                    const department = $row.attr('data-course-department') || '';
+                    const semester = $row.attr('data-course-semester') || '';
+                    
+                    if (title.includes(searchTerm) || 
+                        code.includes(searchTerm) || 
+                        teacher.includes(searchTerm) || 
+                        department.includes(searchTerm) || 
+                        semester.includes(searchTerm)) {
+                        $row.show();
+                    } else {
+                        $row.hide();
+                    }
+                });
+            });
+            
+            $('#clearAdminAllCoursesSearch').on('click', function() {
+                $('#adminAllCoursesSearch').val('');
+                $('.admin-all-course-row').show();
             });
         });
     </script>
