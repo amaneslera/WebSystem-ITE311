@@ -54,8 +54,8 @@ class RoleAuth implements FilterInterface
             return;
         }
 
-        // Admin: allow /admin/*
-        if ($role === 'admin' && (strpos($uri, 'admin/') !== false || $uri === 'admin')) {
+        // Admin: allow /admin/* and /analytics/*
+        if ($role === 'admin' && (strpos($uri, 'admin/') !== false || $uri === 'admin' || strpos($uri, 'analytics/') !== false)) {
             return;
         }
 

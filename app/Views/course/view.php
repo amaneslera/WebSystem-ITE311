@@ -34,8 +34,8 @@
                     <div class="d-flex gap-3">
                         <small class="text-muted"><i class="bi bi-person"></i> Instructor: <strong><?= esc($course['teacher_name']) ?></strong></small>
                         <small class="text-muted"><i class="bi bi-people"></i> Students: <strong><?= $student_count ?></strong></small>
-                        <?php if ($role == 'student' && isset($enrollment)): ?>
-                            <small class="text-muted"><i class="bi bi-calendar-check"></i> Enrolled: <?= date('M d, Y', strtotime($enrollment['enrolled_at'])) ?></small>
+                        <?php if ($role == 'student' && isset($enrollment) && !empty($enrollment['enrollment_date'])): ?>
+                            <small class="text-muted"><i class="bi bi-calendar-check"></i> Enrolled: <?= date('M d, Y', strtotime($enrollment['enrollment_date'])) ?></small>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -82,10 +82,10 @@
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <i class="bi bi-file-earmark-pdf text-danger"></i>
-                                        <strong><?= esc($material['title']) ?></strong>
+                                        <strong><?= esc($material['file_name']) ?></strong>
                                         <br>
                                         <small class="text-muted">
-                                            Uploaded: <?= date('M d, Y', strtotime($material['uploaded_at'])) ?>
+                                            Uploaded: <?= date('M d, Y', strtotime($material['created_at'])) ?>
                                         </small>
                                     </div>
                                     <div>

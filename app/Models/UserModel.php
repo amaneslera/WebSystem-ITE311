@@ -27,6 +27,10 @@ class UserModel extends Model
         'password', 
         'role', 
         'status',
+        'student_id',
+        'program_id',
+        'year_level',
+        'program',
         'created_at', 
         'updated_at'
     ];

@@ -55,6 +55,15 @@ class Course extends ResourceController
         $enrollmentModel = new EnrollmentModel();
         $courseModel = new CourseModel();
         $invitationModel = new EnrollmentInvitationModel();
+        $completedCourseModel = new \App\Models\CompletedCourseModel();
+        
+        // Check if course is already completed
+        if ($completedCourseModel->hasCompletedCourse($userId, $courseId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'You have already completed this course'
+            ])->setStatusCode(409);
+        }
         
         // Check if user is already enrolled
         if ($enrollmentModel->isAlreadyEnrolled($userId, $courseId)) {
@@ -130,7 +139,14 @@ class Course extends ResourceController
         }
         
         // Create enrollment request instead of direct enrollment
-        $message = $this->request->getJSON()->message ?? null;
+        // Support both JSON and POST data
+        $message = null;
+        if ($this->request->getHeaderLine('Content-Type') === 'application/json') {
+            $json = $this->request->getJSON();
+            $message = $json->message ?? null;
+        } else {
+            $message = $this->request->getPost('message');
+        }
         $result = $invitationModel->createRequest($userId, $courseId, $message);
         
         if ($result['success']) {
@@ -202,7 +218,6 @@ class Course extends ResourceController
                     ->like('courses.title', $searchTerm)
                     ->orLike('courses.course_code', $searchTerm)
                     ->orLike('courses.description', $searchTerm)
-                    ->orLike('courses.code', $searchTerm)
                 ->groupEnd()
                 ->where('courses.status', 'active')
                 ->findAll();

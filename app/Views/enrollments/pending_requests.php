@@ -1,51 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pending Enrollment Requests - LMS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 0;
-        }
-        .request-card {
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-            margin-bottom: 20px;
-        }
-        .request-card:hover {
-            transform: translateY(-5px);
-        }
-        .badge-request {
-            font-size: 0.85rem;
-            padding: 5px 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0">
-                                <i class="bi bi-person-raised-hand"></i> Pending Enrollment Requests
-                            </h3>
-                            <a href="/dashboard" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Back to Dashboard
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<?= view('templates/header', ['title' => 'Pending Enrollment Requests']) ?>
+
+<style>
+    .request-card {
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 20px;
+    }
+    .request-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .badge-request {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-0">
+                <i class="bi bi-person-raised-hand"></i> Pending Enrollment Requests
+            </h2>
+            <p class="text-muted">Review and respond to student enrollment requests</p>
         </div>
+        <div class="col text-end">
+            <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
 
         <!-- Flash Messages -->
         <?php if (session()->getFlashdata('success')): ?>
@@ -57,29 +43,31 @@
         
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle"></i> <?= session()->getFlashdata('error') ?>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= session()->getFlashdata('error') ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <!-- Requests List -->
         <?php if (empty($requests)): ?>
-            <div class="card request-card">
+            <div class="card request-card shadow-sm">
                 <div class="card-body text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
                     <h4 class="mt-3">No Pending Requests</h4>
                     <p class="text-muted">There are no pending enrollment requests at the moment.</p>
-                    <a href="/dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+                    <a href="<?= base_url('dashboard') ?>" class="btn btn-primary mt-3">
+                        <i class="bi bi-house"></i> Go to Dashboard
+                    </a>
                 </div>
             </div>
         <?php else: ?>
             <?php foreach ($requests as $request): ?>
-                <div class="card request-card">
+                <div class="card request-card shadow-sm">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-8">
                                 <h5 class="card-title">
-                                    <i class="bi bi-book"></i> <?= esc($request['course_name']) ?>
+                                    <i class="bi bi-book"></i> <?= esc($request['course_title']) ?>
                                     <span class="badge bg-primary badge-request ms-2">
                                         <?= esc($request['course_code']) ?>
                                     </span>
@@ -148,10 +136,9 @@
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
         let currentRequestId = null;
         let currentAction = null;
 
@@ -206,6 +193,6 @@
                 }
             });
         });
-    </script>
+</script>
 </body>
 </html>

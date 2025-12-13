@@ -22,6 +22,12 @@ $routes->get('/logout', 'Auth::logout');
 $routes->get('/dashboard', 'Auth::dashboard');
 $routes->post('/course/enroll', 'Course::enroll', ['filter' => 'ratelimit']);
 
+// Analytics routes
+$routes->get('/analytics/year-level', 'Analytics::index', ['filter' => 'roleauth']);
+
+// Student Transcript
+$routes->get('/student/transcript', 'StudentTranscript::index', ['filter' => 'roleauth']);
+
 // Lab 9: Search and Filtering - Multiple route aliases
 $routes->get('/course/search', 'Course::search');
 $routes->post('/course/search', 'Course::search');
@@ -60,6 +66,10 @@ $routes->post('/enrollment/decline-invitation/(:num)', 'EnrollmentInvitations::d
 $routes->get('/enrollment/pending-requests', 'EnrollmentInvitations::pendingRequests', ['filter' => 'roleauth']);
 $routes->post('/enrollment/accept-request/(:num)', 'EnrollmentInvitations::acceptRequest/$1', ['filter' => 'roleauth']);
 $routes->post('/enrollment/decline-request/(:num)', 'EnrollmentInvitations::declineRequest/$1', ['filter' => 'roleauth']);
+
+// Analytics routes
+$routes->get('/analytics/year-level', 'Analytics::index', ['filter' => 'roleauth']);
+$routes->get('/student/transcript', 'StudentTranscript::index', ['filter' => 'roleauth']);
 
 $routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
     $routes->get('dashboard', 'Teacher::dashboard');
@@ -112,10 +122,12 @@ $routes->group('admin', ['filter' => 'roleauth'], function($routes) {
     $routes->post('courses/assign-teacher', 'AdminCourses::assignTeacher');
     $routes->post('courses/create-schedule', 'AdminCourses::createSchedule');
     
-    // Completed Courses Management (for transferees)
-    $routes->get('completed-courses', 'AdminCourses::completedCourses');
-    $routes->post('completed-courses/add', 'AdminCourses::addCompletedCourse');
-    $routes->get('completed-courses/delete/(:num)', 'AdminCourses::deleteCompletedCourse/$1');
+    // Completed Courses Management (Transfer Credits)
+    $routes->get('completed-courses', 'CompletedCourses::manage');
+    $routes->get('completed-courses/(:num)', 'CompletedCourses::manage/$1');
+    $routes->post('completed-courses/add', 'CompletedCourses::add');
+    $routes->post('completed-courses/update/(:num)', 'CompletedCourses::update/$1');
+    $routes->post('completed-courses/delete/(:num)', 'CompletedCourses::delete/$1');
 });
 
 // User Management Routes (Admin only)

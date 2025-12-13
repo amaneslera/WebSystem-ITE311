@@ -103,20 +103,24 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label for="program_id" class="form-label">Program</label>
+                                        <label for="program_id" class="form-label">Program (Optional)</label>
                                         <select class="form-select" id="program_id" name="program_id">
-                                            <option value="">Select Program</option>
+                                            <option value="">-- None / Not Set --</option>
                                             <?php 
                                             $db = \Config\Database::connect();
-                                            $programs = $db->table('course_programs')->get()->getResultArray();
-                                            foreach ($programs as $program): 
+                                            $programs = $db->table('programs')->get()->getResultArray();
+                                            if (empty($programs)): ?>
+                                                <option value="" disabled>No programs available</option>
+                                            <?php else:
+                                                foreach ($programs as $program): 
                                             ?>
                                                 <option value="<?= $program['id'] ?>" <?= old('program_id', $user['program_id'] ?? '') == $program['id'] ? 'selected' : '' ?>>
-                                                    <?= $program['name'] ?>
+                                                    <?= esc($program['name'] ?? $program['program_name'] ?? 'Unknown Program') ?>
                                                 </option>
-                                            <?php endforeach; ?>
+                                            <?php endforeach; 
+                                            endif; ?>
                                         </select>
-                                        <div class="form-text">Student's academic program</div>
+                                        <div class="form-text">Student's academic program (leave blank if not applicable)</div>
                                     </div>
 
                                     <div class="mb-3">

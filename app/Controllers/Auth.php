@@ -232,7 +232,7 @@ class Auth extends BaseController
                 
                 // Get available courses (courses the student is not enrolled in)
                 if ($this->db->tableExists('courses')) {
-                    // Get IDs of courses the student is already enrolled in
+                    // Get IDs of courses the student is already enrolled in OR completed
                     $enrolledCourseIds = [];
                     if ($this->db->tableExists('enrollments')) {
                         $enrolledCourseIds = $this->db->table('enrollments')
@@ -243,14 +243,28 @@ class Auth extends BaseController
                         $enrolledCourseIds = array_column($enrolledCourseIds, 'course_id');
                     }
                     
-                    // Get ALL active courses (not enrolled) - same as advanced search
+                    // Also exclude completed courses from available courses
+                    $completedCourseIds = [];
+                    if ($this->db->tableExists('completed_courses')) {
+                        $completedCourseIds = $this->db->table('completed_courses')
+                            ->select('course_id')
+                            ->where('user_id', $userId)
+                            ->get()
+                            ->getResultArray();
+                        $completedCourseIds = array_column($completedCourseIds, 'course_id');
+                    }
+                    
+                    // Merge both arrays to exclude from available courses
+                    $excludedCourseIds = array_merge($enrolledCourseIds, $completedCourseIds);
+                    
+                    // Get ALL active courses (not enrolled and not completed) - same as advanced search
                     $builder = $this->db->table('courses')
                         ->select('courses.*, users.name as teacher_name')
                         ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
                         ->where('courses.status', 'active');
                     
-                    if (!empty($enrolledCourseIds)) {
-                        $builder->whereNotIn('courses.id', $enrolledCourseIds);
+                    if (!empty($excludedCourseIds)) {
+                        $builder->whereNotIn('courses.id', $excludedCourseIds);
                     }
                     
                     $data['available_courses'] = $builder->get()->getResultArray();
@@ -265,15 +279,31 @@ class Auth extends BaseController
                 $data['total_courses'] = $totalCourses;
                 session()->set('total_courses', $totalCourses); // Store in session for AJAX updates
 
-                // Get enrolled courses (exclude inactive teachers)
+                // Get enrolled courses (exclude inactive teachers and completed courses)
                 if ($this->db->tableExists('enrollments')) {
-                    $data['enrolled_courses'] = $this->db->table('enrollments')
+                    // Get completed course IDs
+                    $completedCourseIds = [];
+                    if ($this->db->tableExists('completed_courses')) {
+                        $completedCourseIds = $this->db->table('completed_courses')
+                            ->select('course_id')
+                            ->where('user_id', $userId)
+                            ->get()
+                            ->getResultArray();
+                        $completedCourseIds = array_column($completedCourseIds, 'course_id');
+                    }
+                    
+                    $builder = $this->db->table('enrollments')
                         ->select('enrollments.*, courses.title, courses.description, users.name as teacher_name')
                         ->join('courses', 'courses.id = enrollments.course_id')
                         ->join('users', 'users.id = courses.teacher_id AND users.status = \'active\'')
-                        ->where('enrollments.user_id', $userId)
-                        ->get()
-                        ->getResultArray();
+                        ->where('enrollments.user_id', $userId);
+                    
+                    // Exclude completed courses from enrolled courses
+                    if (!empty($completedCourseIds)) {
+                        $builder->whereNotIn('courses.id', $completedCourseIds);
+                    }
+                    
+                    $data['enrolled_courses'] = $builder->get()->getResultArray();
                 } else {
                     $data['enrolled_courses'] = [];
                 }

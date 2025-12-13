@@ -93,7 +93,7 @@ class Users extends Controller
 
         // Add student-specific fields if role is student
         if ($this->request->getPost('role') === 'student') {
-            $userData['student_id'] = $this->request->getPost('student_id');
+            $userData['student_id'] = $this->request->getPost('student_id') ?: null;
             $userData['program_id'] = $this->request->getPost('program_id') ?: null;
             $userData['year_level'] = $this->request->getPost('year_level') ?: null;
         }
@@ -194,7 +194,7 @@ class Users extends Controller
 
         // Add student-specific fields if role is student
         if ($this->request->getPost('role') === 'student') {
-            $userData['student_id'] = $this->request->getPost('student_id');
+            $userData['student_id'] = $this->request->getPost('student_id') ?: null;
             $userData['program_id'] = $this->request->getPost('program_id') ?: null;
             $userData['year_level'] = $this->request->getPost('year_level') ?: null;
         }

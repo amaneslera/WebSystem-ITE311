@@ -87,6 +87,36 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card stat-card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">Year Level Analytics</h5>
+                                    <h2 class="display-4"><i class="bi bi-bar-chart-line"></i></h2>
+                                </div>
+                                <i class="bi bi-graph-up icon-large"></i>
+                            </div>
+                            <a href="<?= base_url('/analytics/year-level') ?>" class="btn btn-sm btn-light mt-3">View Analytics</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card stat-card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">Manage Transfer Credits</h5>
+                                    <h2 class="display-4"><i class="bi bi-clipboard-check"></i></h2>
+                                </div>
+                                <i class="bi bi-pencil-square icon-large"></i>
+                            </div>
+                            <a href="<?= base_url('/admin/completed-courses') ?>" class="btn btn-sm btn-light mt-3">Manage Credits</a>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Recent Users Table -->
@@ -585,6 +615,23 @@
                         </div>
                     </div>
                     
+                    <!-- Academic Transcript Card -->
+                    <div class="card mb-4 stat-card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">My Transcript</h5>
+                                    <h2 class="display-4"><i class="bi bi-file-earmark-text"></i></h2>
+                                </div>
+                                <i class="bi bi-clipboard-data icon-large"></i>
+                            </div>
+                            <p class="card-text">View your complete academic record</p>
+                            <a href="<?= base_url('student/transcript') ?>" class="btn btn-sm btn-light mt-2 w-100">
+                                <i class="bi bi-eye"></i> View Transcript
+                            </a>
+                        </div>
+                    </div>
+                    
                     <!-- Recent Grades Card -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -632,7 +679,7 @@
                                                 <p class="card-text"><?= substr($course['description'] ?? 'No description available', 0, 100) ?>...</p>
                                             </div>
                                             <div class="card-footer bg-transparent">
-                                                <a href="<?= base_url('/course/' . $course['id']) ?>" class="btn btn-sm btn-outline-success w-100">View Course</a>
+                                                <a href="<?= base_url('/course/view/' . $course['id']) ?>" class="btn btn-sm btn-outline-success w-100">View Course</a>
                                             </div>
                                         </div>
                                     </div>
@@ -1317,7 +1364,7 @@ $(document).ready(function() {
                                         '<p class="card-text">' + data.course.description.substring(0, 100) + '...</p>' +
                                     '</div>' +
                                     '<div class="card-footer bg-transparent">' +
-                                        '<a href="<?= base_url('/course/') ?>' + courseId + '" class="btn btn-sm btn-outline-success w-100">View Course</a>' +
+                                        '<a href="<?= base_url('/course/view/') ?>' + courseId + '" class="btn btn-sm btn-outline-success w-100">View Course</a>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>'
